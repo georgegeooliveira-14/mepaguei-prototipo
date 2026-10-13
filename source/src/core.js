@@ -80,7 +80,14 @@ const MASKS = {
   diames: v => { v = v.replace(/\D/g, '').slice(0, 4); return v.replace(/(\d{2})(\d)/, '$1/$2'); },
   int: v => v.replace(/\D/g, '').slice(0, 3),
   dig: v => v.replace(/\D/g, '').slice(0, 6),
+  numero: v => v.replace(/\D/g, '').slice(0, 6),
 };
+/* no navegador o teclado e completo: barra a letra antes de ela entrar no campo numerico */
+const SO_DIGITO = /^(cpf|cel|data|cep|brl|brl0|diames|int|dig|numero)$/;
+document.addEventListener('beforeinput', (e) => {
+  const i = e.target; if (!i || !i.dataset || !SO_DIGITO.test(i.dataset.mask || '')) return;
+  if (e.data != null && /\D/.test(e.data)) e.preventDefault();
+}, true);
 
 /* ---------- ícones (Lucide, embutidos no build) ---------- */
 function ic(name, size = 24, extra = '') {
@@ -219,8 +226,29 @@ function render(dir) {
   clearTimers();
   closeOverlays(true);
   if (top.scroll) { const sc = el.querySelector('.scroll, .sheet-in'); if (sc) sc.scrollTop = top.scroll; }
+  alvoToque(el);
   def.mount && def.mount(el, top.p, top);
   refreshValid();
+}
+/* alvo de toque: botão só de ícone recebe área clicável de 40px sem mudar o visual
+   (o padding amplia a área, a margem negativa devolve o espaço ao layout) */
+function alvoToque(el) {
+  el.querySelectorAll('button:not(.bkb):not(.btn)').forEach(b => {
+    if (b.children.length !== 1 || b.firstElementChild.tagName.toLowerCase() !== 'svg') return;
+    if ((b.textContent || '').trim() || b.style.margin) return;
+    const st = getComputedStyle(b);
+    if (st.borderTopWidth !== '0px' || st.backgroundImage !== 'none') return;
+    const bg = st.backgroundColor;
+    if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return;
+    const r = b.getBoundingClientRect();
+    const dx = Math.max(0, Math.round((40 - r.width) / 2)), dy = Math.max(0, Math.round((40 - r.height) / 2));
+    if (!dx && !dy) return;
+    /* soma ao padding que o botão já tem e devolve a diferença em margem negativa */
+    const pt = parseFloat(st.paddingTop) || 0, pl = parseFloat(st.paddingLeft) || 0;
+    /* content-box: se o botão tem largura fixa, o padding cresce para fora em vez de comer o ícone */
+    b.style.boxSizing = 'content-box';
+    b.style.padding = (pt + dy) + 'px ' + (pl + dx) + 'px'; b.style.margin = -dy + 'px ' + -dx + 'px';
+  });
 }
 function saveScroll() { const top = stack[stack.length - 1]; if (top && cur) { const sc = cur.querySelector('.scroll, .sheet-in'); top.scroll = sc ? sc.scrollTop : 0; } }
 function go(id, p = {}, dir) { saveScroll(); stack.push({ id, p }); render(dir); }

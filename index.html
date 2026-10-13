@@ -706,7 +706,14 @@ const MASKS = {
   diames: v => { v = v.replace(/\D/g, '').slice(0, 4); return v.replace(/(\d{2})(\d)/, '$1/$2'); },
   int: v => v.replace(/\D/g, '').slice(0, 3),
   dig: v => v.replace(/\D/g, '').slice(0, 6),
+  numero: v => v.replace(/\D/g, '').slice(0, 6),
 };
+/* no navegador o teclado e completo: barra a letra antes de ela entrar no campo numerico */
+const SO_DIGITO = /^(cpf|cel|data|cep|brl|brl0|diames|int|dig|numero)$/;
+document.addEventListener('beforeinput', (e) => {
+  const i = e.target; if (!i || !i.dataset || !SO_DIGITO.test(i.dataset.mask || '')) return;
+  if (e.data != null && /\D/.test(e.data)) e.preventDefault();
+}, true);
 
 /* ---------- ícones (Lucide, embutidos no build) ---------- */
 function ic(name, size = 24, extra = '') {
@@ -845,8 +852,29 @@ function render(dir) {
   clearTimers();
   closeOverlays(true);
   if (top.scroll) { const sc = el.querySelector('.scroll, .sheet-in'); if (sc) sc.scrollTop = top.scroll; }
+  alvoToque(el);
   def.mount && def.mount(el, top.p, top);
   refreshValid();
+}
+/* alvo de toque: botão só de ícone recebe área clicável de 40px sem mudar o visual
+   (o padding amplia a área, a margem negativa devolve o espaço ao layout) */
+function alvoToque(el) {
+  el.querySelectorAll('button:not(.bkb):not(.btn)').forEach(b => {
+    if (b.children.length !== 1 || b.firstElementChild.tagName.toLowerCase() !== 'svg') return;
+    if ((b.textContent || '').trim() || b.style.margin) return;
+    const st = getComputedStyle(b);
+    if (st.borderTopWidth !== '0px' || st.backgroundImage !== 'none') return;
+    const bg = st.backgroundColor;
+    if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return;
+    const r = b.getBoundingClientRect();
+    const dx = Math.max(0, Math.round((40 - r.width) / 2)), dy = Math.max(0, Math.round((40 - r.height) / 2));
+    if (!dx && !dy) return;
+    /* soma ao padding que o botão já tem e devolve a diferença em margem negativa */
+    const pt = parseFloat(st.paddingTop) || 0, pl = parseFloat(st.paddingLeft) || 0;
+    /* content-box: se o botão tem largura fixa, o padding cresce para fora em vez de comer o ícone */
+    b.style.boxSizing = 'content-box';
+    b.style.padding = (pt + dy) + 'px ' + (pl + dx) + 'px'; b.style.margin = -dy + 'px ' + -dx + 'px';
+  });
 }
 function saveScroll() { const top = stack[stack.length - 1]; if (top && cur) { const sc = cur.querySelector('.scroll, .sheet-in'); top.scroll = sc ? sc.scrollTop : 0; } }
 function go(id, p = {}, dir) { saveScroll(); stack.push({ id, p }); render(dir); }
@@ -1368,7 +1396,7 @@ screen('perf3', {
       title: 'Endereço', sub: 'Informe seu endereço residencial para fins de validação cadastral.', step: '3/4',
       body: `${field({ id: 'cep', label: 'CEP', ph: '12345-078', bind: 'user.cep', mask: 'cep', icon: 'search', helper: st === 'load' ? 'Buscando endereço...' : '' })}
       ${st === 'err' ? '<p class="fld-h err" style="margin-top:-8px">CEP não encontrado. Confira o número ou preencha o endereço abaixo.</p>' : ''}
-      <div class="row g3 ais">${field({ id: 'rua', label: 'Rua / Logradouro', ph: 'ex: Rua Bione', bind: 'user.rua', dis: !ok, cls: 'f1' })}<div style="width:96px">${field({ id: 'num', label: 'Número', ph: '123', bind: 'user.numero', dis: !ok, mode: 'numeric' })}</div></div>
+      <div class="row g3 ais">${field({ id: 'rua', label: 'Rua / Logradouro', ph: 'ex: Rua Bione', bind: 'user.rua', dis: !ok, cls: 'f1' })}<div style="width:96px">${field({ id: 'num', label: 'Número', ph: '123', bind: 'user.numero', dis: !ok, mask: 'numero' })}</div></div>
       ${field({ id: 'compl', label: 'Complemento', opt: true, ph: 'ex: Apto. 234, Bloco A', bind: 'user.compl', dis: !ok })}
       ${field({ id: 'bairro', label: 'Bairro', ph: 'ex: Bairro do Recife', bind: 'user.bairro', dis: !ok })}
       <div class="row g3 ais">${field({ id: 'cid', label: 'Cidade', ph: 'ex: Recife', bind: 'user.cidade', dis: !ok, cls: 'f1' })}<div style="width:110px">${field({ id: 'uf', label: 'Estado (UF)', ph: 'PE', bind: 'user.uf', dis: !ok })}</div></div>`,
@@ -2814,8 +2842,8 @@ function ssProjBody(p, sr) {
   const s = S.ss; const sim = s.sim ? ssSerie(s.sim) : null; const k = p.day ?? defDay(); const D = (sim || sr).days[k];
   const fin = sr.final, neg = sr.min.saldo < 0;
   const miaTxt = `Considerando todas as premissas do estudo (saldo atual, entradas previstas, poupança automática e suas despesas recorrentes e eventuais):\n\nNo dia ${ddmm(ssFim())} (${DIAS[ssFim().getDay()]}) você deverá ter ${fmtK(fin)} disponíveis em suas contas.\n\nEste é o seu saldo seguro: caso seus pagamentos realizados obedeçam este limite, você não ficará no vermelho ;)${neg ? `\n\nFique atento a dias com saldo negativo, como o dia ${ddmm(sr.min.d)}. Avalie se consegue evitar ou adiar pagamentos, além de buscar novas entradas, para que o saldo não fique negativo.` : ''}`;
-  return `<div class="col g1"><p class="h3 c-darker">Detalhamento diário</p><p class="b14 c-dark">Veja o impacto das suas escolhas nos próximos 30 dias</p></div>
-    ${s.miaP ? miaMini('miaOk') : miaBox('Como interpretar a projeção', miaTxt, 'miaOk')}
+  return `${s.miaP ? miaMini('miaOk') : miaBox('Como interpretar a projeção', miaTxt, 'miaOk')}
+    <div class="col g1"><p class="h3 c-darker">Detalhamento diário</p><p class="b14 c-dark">Veja o impacto das suas escolhas nos próximos 30 dias</p></div>
     ${sim ? `<div class="card col g1" style="border-color:var(--ia);background:var(--ia-bg)"><p class="b14 bold c-darker">Com essas mudanças, seu saldo termina o período em ${fmtK(sim.final)}</p><p class="row g3 cap c-dark"><span class="row g1"><i style="width:14px;height:2px;background:#404040;display:inline-block"></i>Projeção original</span><span class="row g1"><i style="width:14px;border-top:2px dashed #8b3eea;display:inline-block"></i>Simulação</span></p></div>` : ''}
     <div class="card col g3">
       <div class="row jb"><button type="button" data-act="dprev" aria-label="Dia anterior" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--primary);color:var(--primary);display:flex;align-items:center;justify-content:center">${ic('chevron-left', 16)}</button><p class="b16 bold c-darker">${ddmm(D.d)} · ${DIAS[D.d.getDay()]}</p><button type="button" data-act="dnext" aria-label="Próximo dia" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--primary);color:var(--primary);display:flex;align-items:center;justify-content:center">${ic('chevron-right', 16)}</button></div>
@@ -2910,7 +2938,7 @@ Object.assign(GLOBAL_ACTS, {
 });
 function ssBegin() { S.ss = null; ssState(); if (!S.contas.length) { go('ssSemConta'); return; } go('ssContas'); }
 screen('ssSemConta', {
-  render: () => `${statusBar()}${appHeader('Projeção de Saldo Seguro')}<div class="col g4 px5" style="flex:1;justify-content:center"><div class="empty"><span class="ico-c" style="width:56px;height:56px">${ic('landmark', 26)}</span><p class="h3 c-darker">Conecte suas contas para projetar</p><p class="b14 c-dark">O ponto de partida do Saldo Seguro é o saldo atual das suas contas. Conecte-as com segurança via Open Finance.</p></div>${btn('Conectar contas', { go: 'of1' })}</div>${homeInd()}`,
+  render: () => `${statusBar()}${appHeader('Projeção de Saldo Seguro')}<div class="col g4 px5" style="flex:1;justify-content:center"><div class="empty"><span class="ico-c" style="width:56px;height:56px">${ic('landmark', 24)}</span><p class="h3 c-darker">Conecte suas contas para projetar</p><p class="b14 c-dark">O ponto de partida do Saldo Seguro é o saldo atual das suas contas. Conecte-as com segurança via Open Finance.</p></div>${btn('Conectar contas', { go: 'of1' })}</div>${homeInd()}`,
 });
 
 /* ---------- passo 1 · saldo atual ---------- */
@@ -2950,9 +2978,9 @@ function entradaSheet(e, onSave) {
       ${['sim', 'nao'].map(k => `<button type="button" class="radc ${t.rec === (k === 'sim') ? 'on' : ''}" data-act="erec" data-k="${k}"><span class="rad ${t.rec === (k === 'sim') ? 'on' : ''}"><span class="o"></span><span class="lb">${k === 'sim' ? 'Sim, ela se repete todo mês' : 'Não, é um valor único'}</span></span><span class="d">${k === 'sim' ? 'Como salário, aluguel ou mesada.' : 'Um recebimento pontual e único.'}</span></button>`).join('')}
       ${field({ id: 'en', label: 'Nome', ph: 'ex: Salário, Freela, Aluguel', bind: 'tmpE.nome' })}
       ${t.rec === true ? `<div class="fld"><label class="fld-l" for="et">Tipo de data</label><div class="inp"><select id="et" class="${t.tipo ? '' : 'ph'}"><option value="" ${t.tipo ? '' : 'selected'} disabled>Selecionar</option><option value="fixo" ${t.tipo === 'fixo' ? 'selected' : ''}>Dia fixo no mês</option><option value="util" ${t.tipo === 'util' ? 'selected' : ''}>Dia útil no mês</option></select><span class="ib">${ic('chevron-down', 18)}</span></div><p class="fld-h">Assim sabemos quando esperar esse valor todos os meses.</p></div>
-        ${t.tipo ? `<div class="fld"><label class="fld-l" for="ed">${t.tipo === 'util' ? 'Dia útil do mês' : 'Dia do mês'}</label><div class="row g2 b16 c-dark">${t.tipo === 'util' ? 'Todo' : 'Todo dia'}<div class="inp" style="width:72px"><input id="ed" data-bind="tmpE.diaTxt" data-mask="int" inputmode="numeric" value="${esc(t.diaTxt)}" placeholder="5" style="text-align:center"></div>${t.tipo === 'util' ? 'dia útil do mês' : 'do mês'}</div><p class="fld-h">${t.tipo === 'util' ? 'Escolha entre o 1º e o 20º dia útil do mês.' : 'Escolha um dia de 1 a 31.'}</p></div>` : ''}`
+        ${t.tipo ? `<div class="fld"><label class="fld-l" for="ed">${t.tipo === 'util' ? 'Dia útil do mês' : 'Dia do mês'}</label><div class="row g2 b16 c-dark">${t.tipo === 'util' ? 'Todo' : 'Todo dia'}<div class="inp" style="width:72px"><input id="ed" data-bind="tmpE.diaTxt" data-mask="int" inputmode="numeric" value="${esc(t.diaTxt)}" placeholder="" style="text-align:center"></div>${t.tipo === 'util' ? 'dia útil do mês' : 'do mês'}</div><p class="fld-h">${t.tipo === 'util' ? 'Escolha entre o 1º e o 20º dia útil do mês.' : 'Escolha um dia de 1 a 31.'}</p></div>` : ''}`
         : t.rec === false ? field({ id: 'edt', label: 'Data prevista de recebimento', ph: `Ex: ${ddmmyyyy(addDays(hoje(), 7))}`, bind: 'tmpE.data', mask: 'data' }) : ''}
-      ${field({ id: 'ev', label: 'Valor estimado (R$)', ph: 'R$ 0,00', bind: 'tmpE.valorTxt', mask: 'brl' })}`,
+      ${field({ id: 'ev', label: 'Valor estimado (R$)', ph: 'Digite o valor', bind: 'tmpE.valorTxt', mask: 'brl' })}`,
       btn(e ? 'Salvar alterações' : 'Salvar', { act: 'eSave', cls: 'js-next' }) + btn('Voltar', { v: 'o', act: 'dlgClose' }),
       () => { const t = S.tmpE; const dia = +t.diaTxt; if (!t.nome.trim() || parseBRL(t.valorTxt) <= 0 || t.rec == null) return false; if (t.rec) return t.tipo && dia >= 1 && dia <= (t.tipo === 'util' ? 20 : 31); return !!parseData(t.data); });
     ov.querySelector('#et')?.addEventListener('change', ev => { S.tmpE.tipo = ev.target.value; draw(); });
@@ -3681,7 +3709,7 @@ const bhFoto = (px) => S.user.bhFoto
   : `<span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--bh-blue);font-weight:700;font-size:${Math.round(px * 0.36)}px">${esc(iniciais(S.user.nome))}</span>`;
 /* no Perfil o avatar é editável: lápis sobre a imagem abre o seletor de arquivo */
 const bhUserEdit = () => `<label for="bhfoto" style="position:relative;width:52px;height:52px;border-radius:999px;overflow:hidden;flex:none;cursor:pointer">${bhFoto(52)}
-  <span style="position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:var(--bh-blue);color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff">${ic('pencil', 11)}</span>
+  <span style="position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:var(--bh-blue);color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff">${ic('pencil', 12)}</span>
   <input id="bhfoto" type="file" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0"></label>
   <div class="col f1" style="gap:2px;min-width:0"><p style="font-size:24px;line-height:32px;font-weight:700;color:#fff">Olá, ${esc(firstName())}</p><p style="font-size:12px;line-height:18px;color:#fff">Plano Ultrablue | CESAR</p></div>`;
 const bhUser = () => `<button type="button" data-go="bhPerfil" aria-label="Ver meu perfil" style="width:52px;height:52px;border-radius:999px;overflow:hidden;flex:none">${bhFoto(52)}</button><div class="col f1" style="gap:2px;min-width:0"><p style="font-size:24px;line-height:32px;font-weight:700;color:#fff">Olá, ${esc(firstName())}</p><p style="font-size:12px;line-height:18px;color:#fff">Plano Ultrablue | CESAR</p></div>`;

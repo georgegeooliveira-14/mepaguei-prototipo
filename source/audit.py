@@ -28,6 +28,19 @@ CHECK = """(() => {
   scr.querySelectorAll('button').forEach(b => {
     if (!((b.textContent||'').trim() || b.getAttribute('aria-label'))) out.push(['botao sem rotulo', (b.className||'').toString().slice(0,26)]);
   });
+  // ---- varredura de icones e espacamentos ----
+  const OK_IC = [12,14,15,16,18,20,22,24,25,28,32,36,40,48];
+  scr.querySelectorAll('svg').forEach(v => { if (v.closest('.sb')) return; const b = v.getBoundingClientRect(); const w = Math.round(b.width);
+    if (w && !OK_IC.includes(w)) out.push(['icone fora da escala', w + 'px | ' + (v.parentElement.getAttribute('aria-label')||v.parentElement.className||'?').toString().slice(0,24)]); });
+  scr.querySelectorAll('button,a,input,select').forEach(e => { const b = e.getBoundingClientRect();
+    if (!b.width || !b.height) return; if (e.closest('.chips,.dig,.nav,.bhh-nav')) return;
+    if (b.height < 32 || b.width < 32) out.push(['alvo de toque pequeno', Math.round(b.width)+'x'+Math.round(b.height)+' | '+((e.textContent||'').trim()||e.getAttribute('aria-label')||e.className).toString().slice(0,24)]); });
+  const OK_PAD = [0,16,20,24];
+  scr.querySelectorAll('.scroll > *, .sheet-in > *, .bhd-in > *').forEach(e => { const st = getComputedStyle(e);
+    const l = parseFloat(st.paddingLeft), r = parseFloat(st.paddingRight);
+    if (!OK_PAD.includes(Math.round(l)) || !OK_PAD.includes(Math.round(r)))
+      out.push(['padding lateral fora do padrao', Math.round(l)+'/'+Math.round(r)+' | '+(e.className||e.tagName).toString().slice(0,24)]);
+    if (Math.round(l) !== Math.round(r)) out.push(['padding assimetrico', Math.round(l)+'/'+Math.round(r)+' | '+(e.className||e.tagName).toString().slice(0,24)]); });
   // area de rolagem que nao rola mas tem conteudo maior
   scr.querySelectorAll('.scroll,.sheet-in,.bhd-in').forEach(e => {
     if (e.scrollHeight > e.clientHeight + 4 && getComputedStyle(e).overflowY === 'visible')

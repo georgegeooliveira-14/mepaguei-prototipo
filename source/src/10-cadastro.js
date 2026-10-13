@@ -278,7 +278,7 @@ screen('perf3', {
       title: 'Endereço', sub: 'Informe seu endereço residencial para fins de validação cadastral.', step: '3/4',
       body: `${field({ id: 'cep', label: 'CEP', ph: '12345-078', bind: 'user.cep', mask: 'cep', icon: 'search', helper: st === 'load' ? 'Buscando endereço...' : '' })}
       ${st === 'err' ? '<p class="fld-h err" style="margin-top:-8px">CEP não encontrado. Confira o número ou preencha o endereço abaixo.</p>' : ''}
-      <div class="row g3 ais">${field({ id: 'rua', label: 'Rua / Logradouro', ph: 'ex: Rua Bione', bind: 'user.rua', dis: !ok, cls: 'f1' })}<div style="width:96px">${field({ id: 'num', label: 'Número', ph: '123', bind: 'user.numero', dis: !ok, mode: 'numeric' })}</div></div>
+      <div class="row g3 ais">${field({ id: 'rua', label: 'Rua / Logradouro', ph: 'ex: Rua Bione', bind: 'user.rua', dis: !ok, cls: 'f1' })}<div style="width:96px">${field({ id: 'num', label: 'Número', ph: '123', bind: 'user.numero', dis: !ok, mask: 'numero' })}</div></div>
       ${field({ id: 'compl', label: 'Complemento', opt: true, ph: 'ex: Apto. 234, Bloco A', bind: 'user.compl', dis: !ok })}
       ${field({ id: 'bairro', label: 'Bairro', ph: 'ex: Bairro do Recife', bind: 'user.bairro', dis: !ok })}
       <div class="row g3 ais">${field({ id: 'cid', label: 'Cidade', ph: 'ex: Recife', bind: 'user.cidade', dis: !ok, cls: 'f1' })}<div style="width:110px">${field({ id: 'uf', label: 'Estado (UF)', ph: 'PE', bind: 'user.uf', dis: !ok })}</div></div>`,
