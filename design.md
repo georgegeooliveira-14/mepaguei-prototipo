@@ -70,7 +70,7 @@ mepaguei-prototipo/
 ```
 
 ```bash
-git clone https://github.com/georgegeooliveira-14/mepaguei-prototipo
+git clone https://github.com/georgempoliveira/mepaguei-prototipo
 cd mepaguei-prototipo && ./restore.sh          # destino padrão: /home/claude/mepaguei
 cd /home/claude/mepaguei && python3 build.py
 ```

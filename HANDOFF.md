@@ -2,7 +2,7 @@
 
 Tudo o que importa está **neste repositório público**, não na conversa:
 
-    https://github.com/georgegeooliveira-14/mepaguei-prototipo
+    https://github.com/georgempoliveira/mepaguei-prototipo
 
 Conversas, projetos e memória **não passam de uma conta para outra**. O repositório passa.
 Ele carrega o código-fonte, o build publicado, os assets e os três documentos
@@ -28,7 +28,7 @@ Se aparecer arquivo pendente, peça para o Claude publicar antes de trocar de co
 Abra um chat novo e cole isto:
 
 > Vou continuar um protótipo HTML que está pronto neste repositório público:
-> https://github.com/georgegeooliveira-14/mepaguei-prototipo
+> https://github.com/georgempoliveira/mepaguei-prototipo
 >
 > Clone o repositório, rode `./restore.sh` para recriar o diretório de trabalho e
 > **leia `CLAUDE.md`, `prd.md` e `design.md` antes de qualquer coisa** — eles já têm o
