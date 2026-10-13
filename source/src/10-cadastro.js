@@ -98,8 +98,12 @@ function tokenRender(p) {
       <label class="dig w100" for="dig" aria-label="Código de 6 dígitos">${[0, 1, 2, 3, 4, 5].map(k => `<span class="d" data-d="${k}"></span>`).join('')}<input id="dig" data-mask="dig" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label>
       <p class="b16 c-darker">Tempo para expirar: <b class="num" id="tmr">4:59</b></p>
       <p class="cap c-base center">Digite o código de 6 dígitos que enviamos.</p>
+      <div class="row g2 ais w100" style="background:var(--warning-bg);border-radius:12px;padding:12px">
+        <span class="c-warning" style="flex:0 0 auto;display:flex">${ic('triangle-alert', 18)}</span>
+        <p class="cap c-darker">Se o código não chegar em alguns minutos, siga sem confirmar. Dá para validar depois, em Configurações.</p>
+      </div>
     </div>`,
-    foot: btn('Validar código', { next: true, act: 'ok' }) + btn('Reenviar código', { v: 'o', act: 'resend', id: 'resend', attrs: 'disabled' }),
+    foot: btn('Validar código', { next: true, act: 'ok' }) + btn('Reenviar código', { v: 'o', act: 'resend', id: 'resend', attrs: 'disabled' }) + btn('Confirmar depois', { v: 'o', act: 'ok' }),
   });
 }
 function startTimer(el) {
@@ -216,13 +220,13 @@ const PROFISSOES = ['Administrador(a)', 'Advogado(a)', 'Arquiteto(a)', 'Autônom
 screen('perf1', {
   cls: 'grad',
   render: () => gradScreen({
-    title: 'Informações básicas', sub: 'Informe seus dados iniciais para que possamos dar início à personalização do seu perfil.', step: '1/4',
+    title: 'Informações básicas', sub: 'Informe seus dados iniciais para que possamos dar início à personalização do seu perfil. Campos com * são obrigatórios.', step: '1/4',
     body: `<div class="col g2" style="align-items:center">
       <span style="width:128px;height:128px;border-radius:50%;overflow:hidden;background:var(--btn-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:40px;line-height:48px;font-weight:700">${fotoUser() ? `<img src="${fotoUser()}" alt="" style="width:100%;height:100%;object-fit:cover">` : esc(iniciais(S.user.nome))}</span>
       <p class="cap c-base center" style="max-width:240px">Sua foto pode ser alterada no seu perfil do BlueHub.</p>
     </div>
-    ${selectField({ id: 'gen', label: 'Gênero', bind: 'user.genero', options: ['Masculino', 'Feminino', 'Outro', 'Prefiro não informar'] })}
-    ${field({ id: 'nasc', label: 'Quando você nasceu?', ph: 'dd/mm/aaaa', bind: 'user.nasc', mask: 'data' })}`,
+    ${selectField({ id: 'gen', label: 'Gênero *', bind: 'user.genero', options: ['Masculino', 'Feminino', 'Outro', 'Prefiro não informar'] })}
+    ${field({ id: 'nasc', label: 'Quando você nasceu? *', ph: 'dd/mm/aaaa', bind: 'user.nasc', mask: 'data' })}`,
     foot: btn('Continuar', { next: true, go: 'perf2' }),
   }),
   valid: () => S.user.genero && S.user.nasc.length === 10,
@@ -230,10 +234,10 @@ screen('perf1', {
 screen('perf2', {
   cls: 'grad',
   render: () => gradScreen({
-    title: 'Perfil profissional', sub: 'Estes dados são importantes para compreendermos seu momento atual.', step: '2/4',
-    body: `${selectField({ id: 'civil', label: 'Estado Civil', bind: 'user.civil', ph: 'Selecione uma opção', options: ['Solteiro(a)', 'Casado(a)', 'União estável', 'Divorciado(a)', 'Viúvo(a)'], helper: 'Nos ajuda a entender melhor seu momento de vida.' })}
-    ${selectField({ id: 'prof', label: 'Profissão', bind: 'user.profissao', ph: 'Selecione uma opção', options: PROFISSOES })}
-    ${field({ id: 'renda', label: 'Qual o valor da sua renda mensal?', ph: 'R$ 1.620,00', bind: 'user.renda', mask: 'brl', helper: 'Essa informação será utilizada para melhor atender seus interesses no Me Paguei' })}`,
+    title: 'Perfil profissional', sub: 'Estes dados são importantes para compreendermos seu momento atual. Campos com * são obrigatórios.', step: '2/4',
+    body: `${selectField({ id: 'civil', label: 'Estado Civil *', bind: 'user.civil', ph: 'Selecione uma opção', options: ['Solteiro(a)', 'Casado(a)', 'União estável', 'Divorciado(a)', 'Viúvo(a)'], helper: 'Nos ajuda a entender melhor seu momento de vida.' })}
+    ${selectField({ id: 'prof', label: 'Profissão *', bind: 'user.profissao', ph: 'Selecione uma opção', options: PROFISSOES })}
+    ${field({ id: 'renda', label: 'Qual o valor da sua renda mensal? *', ph: 'R$ 1.620,00', bind: 'user.renda', mask: 'brl', helper: 'Essa informação será utilizada para melhor atender seus interesses no Me Paguei' })}`,
     foot: btn('Continuar', { next: true, go: 'perf3' }),
   }),
   valid: () => S.user.civil && S.user.profissao.trim() && S.user.renda,
@@ -275,13 +279,13 @@ screen('perf3', {
     const st = S.flags.cepSt || '';
     const ok = st === 'ok' || st === 'err';
     return gradScreen({
-      title: 'Endereço', sub: 'Informe seu endereço residencial para fins de validação cadastral.', step: '3/4',
-      body: `${field({ id: 'cep', label: 'CEP', ph: '12345-078', bind: 'user.cep', mask: 'cep', icon: 'search', helper: st === 'load' ? 'Buscando endereço...' : '' })}
+      title: 'Endereço', sub: 'Informe seu endereço residencial para fins de validação cadastral. Campos com * são obrigatórios.', step: '3/4',
+      body: `${field({ id: 'cep', label: 'CEP *', ph: '12345-078', bind: 'user.cep', mask: 'cep', icon: 'search', helper: st === 'load' ? 'Buscando endereço...' : '' })}
       ${st === 'err' ? '<p class="fld-h err" style="margin-top:-8px">CEP não encontrado. Confira o número ou preencha o endereço abaixo.</p>' : ''}
-      <div class="row g3 ais">${field({ id: 'rua', label: 'Rua / Logradouro', ph: 'ex: Rua Bione', bind: 'user.rua', dis: !ok, cls: 'f1' })}<div style="width:96px">${field({ id: 'num', label: 'Número', ph: '123', bind: 'user.numero', dis: !ok, mask: 'numero' })}</div></div>
+      <div class="row g3 ais">${field({ id: 'rua', label: 'Rua / Logradouro *', ph: 'ex: Rua Bione', bind: 'user.rua', dis: !ok, cls: 'f1' })}<div style="width:96px">${field({ id: 'num', label: 'Número *', ph: '123', bind: 'user.numero', dis: !ok, mask: 'numero' })}</div></div>
       ${field({ id: 'compl', label: 'Complemento', opt: true, ph: 'ex: Apto. 234, Bloco A', bind: 'user.compl', dis: !ok })}
-      ${field({ id: 'bairro', label: 'Bairro', ph: 'ex: Bairro do Recife', bind: 'user.bairro', dis: !ok })}
-      <div class="row g3 ais">${field({ id: 'cid', label: 'Cidade', ph: 'ex: Recife', bind: 'user.cidade', dis: !ok, cls: 'f1' })}<div style="width:110px">${field({ id: 'uf', label: 'Estado (UF)', ph: 'PE', bind: 'user.uf', dis: !ok })}</div></div>`,
+      ${field({ id: 'bairro', label: 'Bairro *', ph: 'ex: Bairro do Recife', bind: 'user.bairro', dis: !ok })}
+      <div class="row g3 ais">${field({ id: 'cid', label: 'Cidade *', ph: 'ex: Recife', bind: 'user.cidade', dis: !ok, cls: 'f1' })}<div style="width:110px">${field({ id: 'uf', label: 'Estado (UF) *', ph: 'PE', bind: 'user.uf', dis: !ok })}</div></div>`,
       foot: btn('Continuar', { next: true, go: 'perf4' }),
     });
   },
