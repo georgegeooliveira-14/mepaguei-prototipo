@@ -1,4 +1,4 @@
-/* ============ 04 · Open Finance: conectar instituições, contas Principal e Cofrinho ============ */
+/* ============ 04 · Open Finance: conectar instituições, contas Origem e Destino ============ */
 
 /* cabeçalho em gradiente com título centralizado e indicador de passos */
 function ofScreen({ title, sub = '', dots = 0, body = '', foot = '', back = true }) {
@@ -90,10 +90,10 @@ const bankMenuActs = {
 screen('ofBancos', {
   cls: 'grad',
   render: () => ofScreen({ title: 'Bancos conectados', sub: 'Lista das suas instituições bancárias que estão conectadas ao Me Paguei', dots: 1,
-    body: `<p class="b14 c-dark">Total de instituições: ${S.contas.length}</p><div class="col">${S.contas.map(bankRowMenu).join('')}</div>
-      ${btn(ic('plus', 14) + ' Adicionar nova instituição', { v: 'o', cls: 'btn-xs auto', act: 'add', attrs: 'style="align-self:flex-start;padding:0 14px"' })}
-      ${S.contas.length < 2 ? `<div class="row g3 ais" style="background:var(--primary-lighter);border-radius:var(--r-xl);padding:14px"><span class="c-primary">${ic('info', 20)}</span><div class="col g1"><p class="b14 semi c-darker">Sobre contas para poupança</p><p class="b14 c-dark">Para poder definir as contas Principal e Cofrinho, é necessário ter pelo menos duas instituições bancárias conectadas ao Me Paguei. Por favor, adicione uma nova instituição</p></div></div>` : ''}`,
-    foot: `${btn('Configurar a Conta Principal', { act: 'principal', attrs: S.contas.length < 2 ? 'disabled' : '' })}<button type="button" class="b14 semi lnk" data-act="home" style="align-self:center;padding:6px">Ir para Início</button>` }),
+    body: `<p class="b14 c-dark">Total de instituições: <b class="c-darker">${S.contas.length}</b></p><div class="col" style="border-bottom:1px solid var(--border-lighter)">${S.contas.map(bankRowMenu).join('')}</div>
+      ${btn(ic('plus', 14) + ' Adicionar nova instituição', { v: 'o', cls: 'btn-xs auto', act: 'add', attrs: 'style="align-self:flex-end;padding:0 14px"' })}
+      ${S.contas.length < 2 ? `<div class="col g2" style="align-items:center;text-align:center;padding:32px 0 8px"><span class="ico-c" style="background:var(--primary-lighter);color:var(--primary)">${ic('info', 20)}</span><p class="b14 semi c-darker">Sobre contas para poupança</p><p class="b14 c-base">Para poder definir as contas Origem e Destino, <b class="c-dark">é necessário ter pelo menos duas instituições bancárias conectadas</b> ao Me Paguei. Por favor, adicione uma nova instituição</p></div>` : ''}`,
+    foot: `${btn('Configurar a Conta Origem', { act: 'principal', attrs: S.contas.length < 2 ? 'disabled' : '' })}<button type="button" class="b14 semi lnk" data-act="home" style="align-self:center;padding:6px">Ir para Início</button>` }),
   acts: Object.assign({}, bankMenuActs, {
     add: () => go('of2'),
     principal: () => go('ofOrig'),
@@ -101,13 +101,16 @@ screen('ofBancos', {
   }),
 });
 
-/* ---------- conta Principal (origem) ---------- */
+/* ---------- conta Origem ---------- */
 function origemPicker(sel) {
-  return `<div class="col g3"><p class="b16 semi c-darker">Selecione uma das contas disponíveis</p>
+  return `<div class="col g3"><p class="b16 semi c-darker">Selecione um dos bancos disponíveis</p>
   ${S.contas.map(id => { const open = S.flags.origOpen === id; const on = sel && sel.bank === id;
-    return `<div class="card" style="padding:0;overflow:hidden;border-color:${on ? 'var(--primary)' : 'var(--border-lighter)'};background:${open ? '#fff' : 'var(--bg-lighter)'}">
-      <button type="button" class="row g3 w100" data-act="oopen" data-b="${id}" style="padding:12px 16px"><span class="rad ${on ? 'on' : ''}" style="width:auto;padding:0"><span class="o"></span></span>${bankIc(id)}<span class="f1 b16 semi c-darker" style="text-align:left">${BANKS[id].nome}</span>${ic(open ? 'chevron-up' : 'chevron-down', 18, 'c-base')}</button>
-      ${open ? `<div class="col" style="padding:0 16px 8px">${BANKS[id].contas.map((c, k) => `<button type="button" class="li ais" data-act="osel" data-b="${id}" data-k="${k}" style="padding:12px 0"><span class="rad ${on && sel.conta === k ? 'on' : ''}" style="width:auto;padding:2px 0 0"><span class="o"></span></span><span class="lt col g1"><span class="b14 semi c-darker">${c.tipo}</span><span class="b14 c-dark"><b>Agência:</b> ${c.ag} | <b>Conta:</b> ${c.cc}</span><span class="b14 c-dark"><b>Saldo Disponível:</b> ${fmtBRL(c.saldo)}</span></span></button>`).join('')}</div>` : ''}
+    return `<div class="card" style="padding:0;overflow:hidden;border-color:${on ? 'var(--primary)' : 'var(--border-lighter)'}">
+      <button type="button" class="row g3 w100" data-act="oopen" data-b="${id}" style="padding:16px;background:var(--bg-lighter)"><span class="rad ${on ? 'on' : ''}" style="width:auto;padding:0"><span class="o"></span></span>${bankIc(id)}<span class="f1 b16 semi c-darker" style="text-align:left">${BANKS[id].nome}</span>${ic(open ? 'chevron-up' : 'chevron-down', 18, 'c-base')}</button>
+      ${open ? `<div class="col" style="background:#fff">${BANKS[id].contas.map((c, k) => `<div class="col g1" style="padding:16px;${k ? 'border-top:1px solid var(--border-lighter)' : ''}">
+        <p class="b14 semi c-darker">${c.tipo}</p>
+        <p class="b14 c-base"><b class="c-darker">Agência:</b> ${c.ag} <span class="c-light">|</span> <b class="c-darker">Conta:</b> ${c.cc}</p>
+        <p class="b14 c-base"><b class="c-darker">Saldo Disponível:</b> ${fmtBRL(c.saldo)}</p></div>`).join('')}</div>` : ''}
     </div>`; }).join('')}</div>`;
 }
 const featList = `<div class="col g2"><p class="b16 semi c-darker">Funcionalidades para poupar</p><p class="b16 c-dark">O Me Paguei utilizará a sua conta para realizar movimentações para as seguintes funcionalidades abaixo:</p>
@@ -121,13 +124,12 @@ function miaInsight(title, text) {
   return `<div class="ins" style="box-shadow:none"><div class="row g2"><span class="ava-mia sm"><img src="assets/mia-avatar.webp" alt=""></span><span class="b14 semi c-ia">Insight da MIA</span><img src="assets/tip.png" width="14" height="14" alt=""></div><p class="b14 bold c-dark">${title}</p><p class="cap c-dark">${text}</p></div>`;
 }
 const origemActs = {
-  oopen: (b) => { const id = b.dataset.b; S.flags.origOpen = S.flags.origOpen === id ? null : id; rerender(); },
-  osel: (b) => { S.tmpOrig = { bank: b.dataset.b, conta: +b.dataset.k }; rerender(); },
+  oopen: (b) => { const id = b.dataset.b; S.tmpOrig = { bank: id, conta: 0 }; S.flags.origOpen = S.flags.origOpen === id ? null : id; rerender(); },
 };
 screen('ofOrig', {
   cls: 'grad',
-  render: () => ofScreen({ title: 'Configurar Principal', sub: 'Selecione a conta que servirá como base para suas operações de poupanças', dots: 2,
-    body: `${miaInsight('Escolha sua conta do dia a dia', 'É dela que eu retiro o valor das suas poupanças automáticas para mover até a conta cofrinho.')}
+  render: () => ofScreen({ title: 'Configurar Origem', sub: 'Selecione a conta que servirá como base para suas operações de poupanças', dots: 2,
+    body: `${miaInsight('Qual o objetivo desta conta?', 'Está e a conta que você usa no dia a dia. O Me Paguei vai usar essa conta para pegar o valor que você definir nas poupanças (Valor Fixo, Placar do Bem e Troco Inteligente) e mover para a sua conta Destino.')}
       ${origemPicker(S.tmpOrig)}<div class="divider"></div>${saldoSegBlock()}<div class="divider"></div>${featList}
       ${checkbox('flags.decl', '<span class="b16">Declaro estar ciente de que as transferências automáticas dependem de saldo disponível na conta de origem e ocorrem sob as diretrizes do regulamento de segurança.</span>', S.flags.decl)}`,
     foot: btn('Autorizar e avançar', { next: true, act: 'ok' }) }),
@@ -146,11 +148,11 @@ screen('ofOrigOk', {
   <div class="sheet" style="background:#fff;flex:none"><div class="sheet-in" style="gap:12px;flex:none">
     <p class="h1 c-darker">Autorização concluída<br>com segurança</p>
     <p class="b16 c-dark">Suas informações foram sincronizadas. A partir de agora, posso realizar as movimentações que você definir ao poupar.</p>
-  </div><div class="sheet-foot" style="background:#fff">${btn('Configurar conta cofrinho', { act: 'go' })}</div></div>${homeInd()}`,
+  </div><div class="sheet-foot" style="background:#fff">${btn('Configurar conta destino', { act: 'go' })}</div></div>${homeInd()}`,
   acts: { go: () => { stack = stack.filter(s => !/^ofExt$|^ofOrigOk$/.test(s.id)); go('ofDest', {}, 'fade'); } },
 });
 
-/* ---------- conta Cofrinho (destino) ---------- */
+/* ---------- conta Destino ---------- */
 function destinoPicker() {
   const opts = S.contas.filter(id => !S.origem || id !== S.origem.bank);
   return `<div class="col g3"><p class="b16 semi c-darker">Selecione uma das contas disponíveis</p>
@@ -158,28 +160,28 @@ function destinoPicker() {
     return `<div class="card" style="padding:0;overflow:hidden;border-color:${on ? 'var(--primary)' : 'var(--border-lighter)'};background:${on ? '#fff' : 'var(--bg-lighter)'}">
       <button type="button" class="row g3 w100" data-act="dsel" data-b="${id}" style="padding:12px 16px"><span class="rad ${on ? 'on' : ''}" style="width:auto;padding:0"><span class="o"></span></span>${bankIc(id)}<span class="f1 b16 semi c-darker" style="text-align:left">${BANKS[id].nome}</span>${ic(on ? 'chevron-up' : 'chevron-down', 18, 'c-base')}</button>
       ${on ? `<div style="padding:0 16px 16px">${field({ id: 'pix', label: 'Chave Pix', ph: 'CPF, e-mail, celular ou chave aleatória', bind: 'tmpDest.pix', helper: 'Usaremos a chave para receber o valor poupado.' })}</div>` : ''}</div>`; }).join('')}
-  ${S.origem ? `<div class="card row g3" style="background:var(--bg-lighter);border:0;opacity:.7">${bankIc(S.origem.bank)}<div class="f1"><p class="b14 semi c-dark">${BANKS[S.origem.bank].nome}</p><p class="cap c-base">Já definida como conta Principal</p></div></div>` : ''}</div>`;
+  ${S.origem ? `<div class="card row g3" style="background:var(--bg-lighter);border:0;opacity:.7">${bankIc(S.origem.bank)}<div class="f1"><p class="b14 semi c-dark">${BANKS[S.origem.bank].nome}</p><p class="cap c-base">Já definida como conta Origem</p></div></div>` : ''}</div>`;
 }
 screen('ofDest', {
   cls: 'grad',
-  render: (p) => ofScreen({ title: 'Configurar Cofrinho', sub: 'Selecione para onde enviaremos o valor que você decidir poupar.', dots: 3,
+  render: (p) => ofScreen({ title: 'Configurar Destino', sub: 'Selecione para onde enviaremos o valor que você decidir poupar.', dots: 3,
     body: `${miaInsight('Qual o objetivo desta conta?', 'Escolha uma conta com pouca movimentação no dia a dia. Isso protege seu dinheiro de impulsos e ajuda você a guardar com consistência.')}${destinoPicker()}`,
-    foot: btn(p.fromCentral ? 'Salvar Conta Cofrinho' : 'Confirmar Conta Cofrinho', { next: true, act: 'ok' }) }),
+    foot: btn(p.fromCentral ? 'Salvar Conta Destino' : 'Confirmar Conta Destino', { next: true, act: 'ok' }) }),
   mount: (el, p) => { if (!p.init) { p.init = 1; S.tmpDest = S.destino ? { ...S.destino } : null; rerender(); } },
   valid: () => S.tmpDest && (S.tmpDest.pix || '').trim().length > 3,
   acts: {
     dsel: (b) => { const id = b.dataset.b; S.tmpDest = S.tmpDest && S.tmpDest.bank === id ? null : { bank: id, pix: '' }; rerender(); later(() => $('#pix', cur)?.focus(), 60); },
-    ok: () => { S.destino = { ...S.tmpDest }; if (P().fromCentral) { back(); toast('Conta Cofrinho atualizada'); return; } go('proc', { msg: 'Estamos armazenando suas definições...', next: 'central', nextP: { tab: 'def', final: true } }); },
+    ok: () => { S.destino = { ...S.tmpDest }; if (P().fromCentral) { back(); toast('Conta Destino atualizada'); return; } go('proc', { msg: 'Estamos armazenando suas definições...', next: 'central', nextP: { tab: 'def', final: true } }); },
   },
 });
 
 /* ---------- central de consentimento ---------- */
 function contaCard(kind) {
   const c = kind === 'p' ? S.origem : S.destino;
-  if (!c) return `<button type="button" class="card row g3" data-act="ctab" data-k="${kind === 'p' ? 'pri' : 'cof'}" style="text-align:left"><span class="ico-c sm">${ic(kind === 'p' ? 'wallet' : 'piggy-bank', 16)}</span><span class="f1 col"><span class="b14 bold c-darker">${kind === 'p' ? 'Principal' : 'Cofrinho'}</span><span class="cap c-base">${kind === 'p' ? 'Conta de origem para poupar' : 'Conta de destino do valor poupado'}</span></span>${ic('chevron-right', 20, 'c-light')}</button>`;
+  if (!c) return `<button type="button" class="card row g3" data-act="ctab" data-k="${kind === 'p' ? 'pri' : 'cof'}" style="text-align:left"><span class="ico-c sm">${ic(kind === 'p' ? 'wallet' : 'piggy-bank', 16)}</span><span class="f1 col"><span class="b14 bold c-darker">${kind === 'p' ? 'Origem' : 'Destino'}</span><span class="cap c-base">${kind === 'p' ? 'Conta de origem para poupar' : 'Conta de destino do valor poupado'}</span></span>${ic('chevron-right', 20, 'c-light')}</button>`;
   const b = BANKS[c.bank]; const conta = kind === 'p' ? b.contas[c.conta || 0] : null;
   return `<div class="card col g3" style="border-color:var(--border-lighter)">
-    <div class="row g3 ais">${bankIc(c.bank)}<div class="f1 col" style="gap:2px"><span class="cap semi c-primary">${kind === 'p' ? 'Principal' : 'Cofrinho'}</span><span class="b16 bold c-darker">${b.curto}</span></div><button type="button" data-act="ctab" data-k="${kind === 'p' ? 'pri' : 'cof'}" aria-label="Editar" style="color:var(--ty-base);padding:2px;align-self:flex-start">${ic('ellipsis-vertical', 18)}</button></div>
+    <div class="row g3 ais">${bankIc(c.bank)}<div class="f1 col" style="gap:2px"><span class="cap semi c-primary">${kind === 'p' ? 'Origem' : 'Destino'}</span><span class="b16 bold c-darker">${b.curto}</span></div><button type="button" data-act="ctab" data-k="${kind === 'p' ? 'pri' : 'cof'}" aria-label="Editar" style="color:var(--ty-base);padding:2px;align-self:flex-start">${ic('ellipsis-vertical', 18)}</button></div>
     <div class="col g1" style="padding-left:52px">${kind === 'p' ? `<p class="b14 c-dark">Agência | Conta: <b class="c-darker">${conta.ag} | ${conta.cc}</b></p><p class="b14 c-dark">Saldo Disponível: <b class="c-darker">${fmtBRL(conta.saldo)}</b></p>` : `<p class="b14 c-dark">Chave Pix (E-mail):</p><p class="b14 bold c-darker" style="overflow-wrap:anywhere">${esc(c.pix)}</p>`}</div></div>`;
 }
 screen('central', {
@@ -189,26 +191,26 @@ screen('central', {
     let body = '';
     const insts = `<div class="col g2"><p class="b16 bold c-darker">Instituições conectadas (Open Finance)</p>${S.contas.length ? `<p class="b14 c-dark">Total de instituições: ${S.contas.length}</p><div class="col">${S.contas.map(bankRowMenu).join('')}</div>` : '<p class="b14 c-dark">Adicione suas instituições financeiras ao Me Paguei para ter a melhor experiência sobre sua vida financeira.</p>'}
       ${btn(ic('plus', 14) + ' Adicionar nova instituição', { v: 'o', cls: 'btn-xs auto', act: 'add', attrs: 'style="align-self:flex-start;padding:0 14px"' })}</div>`;
-    if (tab === 'def') body = `<div class="col g3"><p class="b16 bold c-darker">Contas para Poupança</p><p class="b14 c-dark">${S.origem && S.destino ? 'Confira as contas Principal e Cofrinho vinculadas as funcionalidades de poupança do Me Paguei' : 'Escolha as contas principal e cofrinho para as transferências automáticas'}</p>
+    if (tab === 'def') body = `<div class="col g3"><p class="b16 bold c-darker">Contas para Poupança</p><p class="b14 c-dark">${S.origem && S.destino ? 'Confira as contas Origem e Destino vinculadas as funcionalidades de poupança do Me Paguei' : 'Escolha as contas origem e destino para as transferências automáticas'}</p>
         ${contaCard('p')}${contaCard('d')}
 </div>
       <div class="divider"></div>
-      <div class="col g2"><div class="row jb"><p class="b16 bold c-darker">Saldo de segurança</p>${S.saldoSeg ? `<button type="button" data-act="editSeg" aria-label="Editar saldo de segurança" style="color:var(--ty-base)">${ic('ellipsis-vertical', 18)}</button>` : ''}</div><p class="b14 c-dark">Valor mínimo mantido na conta principal para proteger seu saldo</p>
+      <div class="col g2"><div class="row jb"><p class="b16 bold c-darker">Saldo de segurança</p>${S.saldoSeg ? `<button type="button" data-act="editSeg" aria-label="Editar saldo de segurança" style="color:var(--ty-base)">${ic('ellipsis-vertical', 18)}</button>` : ''}</div><p class="b14 c-dark">Valor mínimo mantido na conta origem para proteger seu saldo</p>
         ${S.saldoSeg ? `<p class="b16 semi c-darker">${fmtBRL(S.saldoSeg)}</p>` : btn('Definir saldo', { v: 'o', cls: 'btn-xs auto', act: 'editSeg', attrs: 'style="align-self:flex-start;padding:0 14px"' })}</div>
       <div class="divider"></div>${insts}`;
     else if (tab === 'pri') body = `${miaInsight('Qual o objetivo desta conta?', 'Esta é a conta que você usa no dia a dia. O Me Paguei vai usar essa conta para pegar o valor que você definir nas poupanças (Valor Fixo, Placar do Bem e Troco Inteligente) e mover para a sua conta Destino.')}
       ${S.contas.length ? origemPicker(S.tmpOrig) : `<div class="col g2"><p class="b16 semi c-darker">Contas disponíveis via Open Finance</p><p class="b14 c-dark">Adicione suas instituições financeiras ao Me Paguei para ter a melhor experiência sobre sua vida financeira.</p>${btn(ic('plus', 14) + ' Adicionar nova instituição', { v: 'o', cls: 'btn-xs auto', act: 'add', attrs: 'style="align-self:flex-start;padding:0 14px"' })}</div>`}
       ${saldoSegBlock()}${featList}`;
-    else if (tab === 'cof') body = `${miaInsight('Objetivo da conta cofrinho', 'Escolha uma conta com pouca movimentação no dia a dia. Isso protege seu dinheiro de impulsos e ajuda você a guardar com consistência.')}
-      ${S.destino ? `<div class="card col g2" style="border-color:var(--primary)"><div class="row g3">${bankIc(S.destino.bank)}<p class="f1 b16 semi c-darker">${BANKS[S.destino.bank].nome}</p><span class="badge success">Definida</span></div><p class="b14 c-dark" style="overflow-wrap:anywhere">Chave Pix: ${esc(S.destino.pix)}</p></div>` : `<p class="b14 c-dark">Nenhuma conta Cofrinho definida ainda.</p>`}
-      ${S.contas.length > 1 ? btn(S.destino ? 'Editar Conta Cofrinho' : 'Definir Conta Cofrinho', { act: 'editDest' }) : `<p class="b14 c-dark">Adicione suas instituições financeiras ao Me Paguei para ter a melhor experiência sobre sua vida financeira.</p>${btn(ic('plus', 14) + ' Adicionar nova instituição', { v: 'o', cls: 'btn-xs auto', act: 'add', attrs: 'style="align-self:flex-start;padding:0 14px"' })}`}`;
+    else if (tab === 'cof') body = `${miaInsight('Objetivo da conta destino', 'Escolha uma conta com pouca movimentação no dia a dia. Isso protege seu dinheiro de impulsos e ajuda você a guardar com consistência.')}
+      ${S.destino ? `<div class="card col g2" style="border-color:var(--primary)"><div class="row g3">${bankIc(S.destino.bank)}<p class="f1 b16 semi c-darker">${BANKS[S.destino.bank].nome}</p><span class="badge success">Definida</span></div><p class="b14 c-dark" style="overflow-wrap:anywhere">Chave Pix: ${esc(S.destino.pix)}</p></div>` : `<p class="b14 c-dark">Nenhuma conta Destino definida ainda.</p>`}
+      ${S.contas.length > 1 ? btn(S.destino ? 'Editar Conta Destino' : 'Definir Conta Destino', { act: 'editDest' }) : `<p class="b14 c-dark">Adicione suas instituições financeiras ao Me Paguei para ter a melhor experiência sobre sua vida financeira.</p>${btn(ic('plus', 14) + ' Adicionar nova instituição', { v: 'o', cls: 'btn-xs auto', act: 'add', attrs: 'style="align-self:flex-start;padding:0 14px"' })}`}`;
     else body = `<p class="b16 semi c-darker">Bancos conectados</p>${S.contas.length ? `<p class="b14 c-dark">Total de instituições conectadas: ${S.contas.length}</p><div class="col">${S.contas.map(bankRowMenu).join('')}</div>` : '<p class="b14 c-dark">Adicione suas instituições financeiras ao Me Paguei para ter a melhor experiência sobre sua vida financeira.</p>'}
       ${btn(ic('plus', 14) + ' Adicionar nova instituição', { v: 'o', cls: 'btn-xs auto', act: 'add', attrs: 'style="align-self:flex-start;padding:0 14px"' })}`;
-    const foot = tab === 'def' ? btn(p.final ? 'Concordar e ir para o Início' : 'Ir para o Início', { act: 'home' }) : tab === 'pri' && S.contas.length ? btn('Salvar conta Principal', { act: 'savePri', next: true }) : '';
+    const foot = tab === 'def' ? btn(p.final ? 'Concordar e ir para o Início' : 'Ir para o Início', { act: 'home' }) : tab === 'pri' && S.contas.length ? btn('Salvar conta Origem', { act: 'savePri', next: true }) : '';
     return `${CURVE}${statusBar(true)}
     <div class="bk" style="margin-top:16px;height:28px"><button type="button" data-back aria-label="Voltar" ${p.final ? 'style="visibility:hidden"' : ''}>${ic('chevron-left', 24)}</button>
       <p class="h2" style="position:absolute;left:56px;right:56px;text-align:center;color:#fff">Consentimento de contas</p><span style="width:24px"></span></div>
-    <div class="chips" style="position:relative;z-index:2;padding:16px 20px 12px">${[['def', 'Definições'], ['pri', 'Principal'], ['cof', 'Cofrinho'], ['inst', 'Instituições']].map(([k, l]) => `<button type="button" class="chip glass ${k === tab ? 'on' : ''}" data-act="ctab" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="chips" style="position:relative;z-index:2;padding:16px 20px 12px">${[['def', 'Definições'], ['pri', 'Origem'], ['cof', 'Destino'], ['inst', 'Instituições']].map(([k, l]) => `<button type="button" class="chip glass ${k === tab ? 'on' : ''}" data-act="ctab" data-k="${k}">${l}</button>`).join('')}</div>
     <div class="scroll" style="position:relative;z-index:2;display:flex;flex-direction:column">
       <div class="col g5" style="flex:1 0 auto;background:#fff;border-radius:32px 32px 0 0;padding:28px 24px 20px">${body}</div></div>${foot ? `<div class="sheet-foot" style="background:#fff;padding-top:8px">${foot}</div>` : ''}${homeInd()}`;
   },
@@ -218,10 +220,10 @@ screen('central', {
     ctab: (b) => { const p = stack[stack.length - 1].p; p.tab = b.dataset.k; p.init = 0; rerender(); },
     add: () => go('of2'),
     swap: () => { if (S.contas.length) { const o = S.origem, d = S.destino; S.origem = { bank: d.bank, conta: 0 }; S.destino = { bank: o.bank, pix: d.pix }; rerender(); toast('Contas invertidas'); } },
-    editSeg: () => { S.flags.sseg2 = S.saldoSeg ? fmtBRL(S.saldoSeg) : ''; openSheet(`<p class="h4 c-darker">Saldo de segurança</p><p class="b14 c-dark">Valor mínimo mantido na conta principal. Se o saldo estiver abaixo disso, não fazemos a transferência do dia.</p>${field({ id: 'sseg2', label: 'Valor', ph: 'R$ 100,00', bind: 'flags.sseg2', mask: 'brl' })}`, { foot: btn('Salvar', { act: 'saveSeg' }) }); },
+    editSeg: () => { S.flags.sseg2 = S.saldoSeg ? fmtBRL(S.saldoSeg) : ''; openSheet(`<p class="h4 c-darker">Saldo de segurança</p><p class="b14 c-dark">Valor mínimo mantido na conta origem. Se o saldo estiver abaixo disso, não fazemos a transferência do dia.</p>${field({ id: 'sseg2', label: 'Valor', ph: 'R$ 100,00', bind: 'flags.sseg2', mask: 'brl' })}`, { foot: btn('Salvar', { act: 'saveSeg' }) }); },
     saveSeg: () => { S.saldoSeg = parseBRL(S.flags.sseg2); closeOverlays(true); rerender(); toast('Saldo de segurança atualizado'); },
     editDest: () => go('ofDest', { fromCentral: true }),
-    savePri: () => { S.origem = { ...S.tmpOrig }; S.saldoSeg = parseBRL(S.flags.sseg) || S.saldoSeg; const p = stack[stack.length - 1].p; p.tab = 'def'; rerender(); toast('Conta Principal atualizada'); },
+    savePri: () => { S.origem = { ...S.tmpOrig }; S.saldoSeg = parseBRL(S.flags.sseg) || S.saldoSeg; const p = stack[stack.length - 1].p; p.tab = 'def'; rerender(); toast('Conta Origem atualizada'); },
     home: () => reset('home', {}, 'back'),
   }),
 });

@@ -77,8 +77,8 @@ function successScreen({ img, chip, chipIcon, title, text, label, act }) {
 function confirmContasSheet(nome, nextAct) {
   const o = S.origem, d = S.destino, conta = BANKS[o.bank].contas[o.conta || 0];
   openSheet(`<p class="h4 c-darker">Confirme suas contas conectadas</p><p class="b14 c-dark">Estas contas movimentam todas as suas poupanças. Alterações aqui afetarão suas regras ativas. Podemos continuar com ${nome}?</p>
-    <div class="card col g1"><span class="badge info" style="align-self:flex-start">Principal</span><div class="row g2" style="margin-top:4px">${bankIc(o.bank, true)}<p class="b16 semi c-darker">${BANKS[o.bank].curto}</p></div><p class="b14 c-dark">Agência | Conta: ${conta.ag} | ${conta.cc}</p><p class="b14 c-dark">Saldo Disponível: ${fmtBRL(conta.saldo)}</p></div>
-    <div class="card col g1"><span class="badge success" style="align-self:flex-start">Cofrinho</span><div class="row g2" style="margin-top:4px">${bankIc(d.bank, true)}<p class="b16 semi c-darker">${BANKS[d.bank].curto}</p></div><p class="b14 c-dark" style="overflow-wrap:anywhere">Chave Pix: ${esc(d.pix)}</p></div>
+    <div class="card col g1"><span class="badge info" style="align-self:flex-start">Origem</span><div class="row g2" style="margin-top:4px">${bankIc(o.bank, true)}<p class="b16 semi c-darker">${BANKS[o.bank].curto}</p></div><p class="b14 c-dark">Agência | Conta: ${conta.ag} | ${conta.cc}</p><p class="b14 c-dark">Saldo Disponível: ${fmtBRL(conta.saldo)}</p></div>
+    <div class="card col g1"><span class="badge success" style="align-self:flex-start">Destino</span><div class="row g2" style="margin-top:4px">${bankIc(d.bank, true)}<p class="b16 semi c-darker">${BANKS[d.bank].curto}</p></div><p class="b14 c-dark" style="overflow-wrap:anywhere">Chave Pix: ${esc(d.pix)}</p></div>
     <div class="card col g1 flat"><p class="b16 semi c-darker">Saldo de segurança</p><p class="b16 semi c-primary">${fmtBRL(S.saldoSeg || 0)}</p><p class="cap c-dark">O valor estabelecido garantirá que nenhuma movimentação seja realizada caso seu saldo esteja abaixo</p></div>`,
     { foot: btn(`Começar ${nome}`, { act: nextAct }) + `<button type="button" class="b14 semi lnk" data-act="toCentralCfg" style="align-self:center;padding:6px">Ir para Consentimento de Contas</button>` });
 }
@@ -102,7 +102,7 @@ screen('poupContas', {
     <div style="padding-top:8px">${btn('Configurar', { act: 'go' })}</div></div>${homeInd()}`,
   acts: { go: () => { if (S.contas.length >= 2) go('ofOrig'); else if (S.contas.length) go('ofBancos'); else go('of1'); } },
 });
-/* ao terminar Principal/Cofrinho, voltar para a poupança que o usuário estava configurando */
+/* ao terminar Origem/Destino, voltar para a poupança que o usuário estava configurando */
 (function () {
   const d = SCREENS.central; const home0 = d.acts.home;
   d.acts.home = () => {
@@ -202,7 +202,7 @@ function trocoBody() {
 }
 function notCfg(k) {
   const ICO = { vf: ['piggy-bank', 'var(--primary)', 'var(--primary-lighter)'], placar: ['trophy', 'var(--warning)', 'var(--warning-bg)'], troco: ['coins', 'var(--success)', 'var(--success-bg)'] }[k];
-  const m = { vf: ['Configure o Valor fixo', 'Escolha quanto e com que frequência guardar. O Me Paguei transfere para o seu cofrinho no automático.', [['calendar-clock', 'Escolha a frequência dos depósitos.'], ['banknote', 'Defina o valor que quer guardar.']]], placar: ['Configure o Placar do bem', 'Una a torcida pelo seu clube ao hábito de guardar dinheiro. A cada vitória, o valor escolhido vai direto para a sua reserva.', [['flag', 'Escolha o seu time do coração.'], ['banknote', 'Defina o valor que quer poupar por vitória.']]], troco: ['Ative o Troco inteligente', 'Compre com o cartão de crédito da sua conta principal e o Me Paguei guarda o troco no seu cofrinho de forma automática.', [['coins', 'Escolha entre arredondar os centavos ou guardar um valor fixo por compra.'], ['rocket', 'Ative o multiplicador opcional para acelerar seus objetivos.']]] }[k];
+  const m = { vf: ['Configure o Valor fixo', 'Escolha quanto e com que frequência guardar. O Me Paguei transfere para o seu cofrinho no automático.', [['calendar-clock', 'Escolha a frequência dos depósitos.'], ['banknote', 'Defina o valor que quer guardar.']]], placar: ['Configure o Placar do bem', 'Una a torcida pelo seu clube ao hábito de guardar dinheiro. A cada vitória, o valor escolhido vai direto para a sua reserva.', [['flag', 'Escolha o seu time do coração.'], ['banknote', 'Defina o valor que quer poupar por vitória.']]], troco: ['Ative o Troco inteligente', 'Compre com o cartão de crédito da sua conta origem e o Me Paguei guarda o troco no seu cofrinho de forma automática.', [['coins', 'Escolha entre arredondar os centavos ou guardar um valor fixo por compra.'], ['rocket', 'Ative o multiplicador opcional para acelerar seus objetivos.']]] }[k];
   return `<div class="col g4" style="padding-top:8px"><span class="ico-c" style="width:56px;height:56px;background:${ICO[2]};color:${ICO[1]}">${ic(ICO[0], 26)}</span><p class="h2 c-darker">${m[0]}</p><p class="b14 c-dark">${m[1]}</p>${m[2].map(([i, t]) => `<div class="row g3"><span class="ico-c sm">${ic(i, 16)}</span><p class="b14 c-dark">${t}</p></div>`).join('')}${btn('Configurar', { act: 'ativar', attrs: `data-k="${k}"` })}</div>`;
 }
 screen('poupar', {
@@ -413,7 +413,7 @@ screen('pbValor', {
       body: `<div class="card row g3">${teamRow(t.id, '<span class="badge success">Escolhido</span>')}</div><p class="b14 c-dark">O valor escolhido só é transferido para a sua poupança quando o ${t.nome} vencer.</p>
       ${field({ id: 'pbv', label: 'Valor por vitória', ph: 'R$ 0,00', bind: 'tmpPb.valorTxt', mask: 'brl' })}
       <div class="row g2" style="flex-wrap:wrap">${[5, 10, 20, 50].map(v => `<button type="button" class="chip" data-act="vq" data-v="${v}">${fmtBRL(v, false)}</button>`).join('')}</div>
-      <div class="card flat col g1"><p class="row g2 b14 semi c-darker">${ic('info', 16, 'c-primary')} Como funciona?</p><p class="b14 c-dark">A transferência será feita entre as contas principal e cofrinho cadastradas por você. Se o seu time não vencer, nenhuma movimentação é feita.</p></div>`,
+      <div class="card flat col g1"><p class="row g2 b14 semi c-darker">${ic('info', 16, 'c-primary')} Como funciona?</p><p class="b14 c-dark">A transferência será feita entre as contas origem e destino cadastradas por você. Se o seu time não vencer, nenhuma movimentação é feita.</p></div>`,
       foot: btn(p.edit ? 'Salvar' : 'Próximo', { next: true, act: 'next' }) + (p.edit ? '' : btn('Cancelar', { v: 'o', act: 'cancel' })) }); },
   mount: (el, p) => { if (p.edit && !p.init) { p.init = 1; S.tmpPb = { time: poupState().placar.time, valorTxt: fmtBRL(poupState().placar.valor) }; rerender(); } },
   valid: () => parseBRL(S.tmpPb.valorTxt) >= 1,
