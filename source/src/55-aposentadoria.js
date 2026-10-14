@@ -15,20 +15,29 @@ function apCalc(over = {}) {
   const needAt = saque * (1 - Math.pow(1 + IM, -nRet)) / IM;
   const evAt = ageY => a.projetos.filter(p => p.ano === ageY);
   const yearNow = hoje().getFullYear();
-  let pat = P0, inv = P0; const serie = [];
-  for (let age = ia; age <= VIDA; age++) {
-    serie.push({ age, pat: Math.max(0, pat), inv: Math.max(0, inv) });
-    for (let m = 0; m < 12; m++) { pat *= 1 + IM; if (age < idade) { pat += aporte; inv += aporte; } else pat -= saque; }
-    a.projetos.forEach(p => { if (p.ano === yearNow + (age - ia) + 1) { pat += p.valor; if (p.valor > 0) inv += p.valor; } });
-  }
+  /* simula a curva ano a ano para um aporte qualquer: serve para a curva real e para a ideal */
+  const sim = (ap) => {
+    let pat = P0, inv = P0; const s = [];
+    for (let age = ia; age <= VIDA; age++) {
+      s.push({ age, pat: Math.max(0, pat), inv: Math.max(0, inv) });
+      for (let m = 0; m < 12; m++) { pat *= 1 + IM; if (age < idade) { pat += ap; inv += ap; } else pat -= saque; }
+      a.projetos.forEach(p => { if (p.ano === yearNow + (age - ia) + 1) { pat += p.valor; if (p.valor > 0) inv += p.valor; } });
+    }
+    return s;
+  };
+  const serie = sim(aporte);
   const proj = serie.find(s => s.age === idade)?.pat ?? 0;
   const acaba = serie.find(s => s.age > idade && s.pat <= 0)?.age || null;
   const fv = n => (Math.pow(1 + IM, n) - 1) / IM;
   const extra = a.projetos.reduce((s, p) => { const y = p.ano - yearNow; const mLeft = Math.max(0, nAcc - y * 12); return s + p.valor * Math.pow(1 + IM, mLeft); }, 0);
   const aporteNec = nAcc ? Math.max(0, (needAt - P0 * Math.pow(1 + IM, nAcc) - extra) / fv(nAcc)) : 0;
+  /* curva "Meta · necessário" (Figma 20810:2161 "Linha · ideal"): trajetória com o aporte ideal,
+     que acumula até o patrimônio necessário na idade-alvo e se esgota no fim do plano */
+  const ideal = sim(aporteNec);
   const rendaPossivel = comp + proj * IM / (1 - Math.pow(1 + IM, -nRet));
   let idadeOk = null; for (let x = idade; x <= 75; x++) { const r = apCalcLite(x, renda, aporte); if (r) { idadeOk = x; break; } }
-  return { ia, idade, renda, aporte, comp, P0, saque, needAt, proj, serie, acaba, aporteNec, rendaPossivel, idadeOk, fecha: proj >= needAt * 0.995, ano: yearNow + (idade - ia) };
+  const invAt = serie.find(s => s.age === idade)?.inv ?? 0;
+  return { ia, idade, renda, aporte, comp, P0, saque, needAt, proj, serie, ideal, acaba, aporteNec, rendaPossivel, idadeOk, invAt, retorno: Math.max(0, proj - invAt), fecha: proj >= needAt * 0.995, ano: yearNow + (idade - ia) };
 }
 function apCalcLite(idade, renda, aporte) {
   const a = apState(); const ia = idadeAtual(); const comp = a.fontes.reduce((s, f) => s + f.valor, 0); const saque = Math.max(0, renda - comp);
@@ -138,30 +147,84 @@ Object.assign(GLOBAL_ACTS, {
 });
 
 /* ---------- resultado ---------- */
-function apChart(r) {
-  const W = 311, H = 190, S0 = r.serie; const max = Math.max(...S0.map(s => s.pat), r.needAt) * 1.1 || 1;
-  const X = age => 14 + (age - r.ia) / (VIDA - r.ia) * (W - 24), Y = v => 10 + (1 - v / max) * (H - 30);
-  const path = k => S0.map((s, i) => `${i ? 'L' : 'M'}${X(s.age).toFixed(1)} ${Y(s[k]).toFixed(1)}`).join(' ');
-  const ticks = [r.ia, Math.round((r.ia + r.idade) / 2), r.idade, Math.round((r.idade + VIDA) / 2), VIDA];
-  const pr = S0.find(s => s.age === r.idade) || S0[S0.length - 1];
-  return `<svg width="100%" viewBox="0 0 ${W} ${H + 18}" role="img" aria-label="Evolução estimada do patrimônio por idade">
-    ${[0.25, 0.5, 0.75].map(f => `<line x1="10" x2="${W}" y1="${10 + f * (H - 30)}" y2="${10 + f * (H - 30)}" stroke="#eceef3"/>`).join('')}
-    <path d="${path('pat')} L${X(VIDA)} ${Y(0)} L${X(r.ia)} ${Y(0)} Z" fill="#8b3eea" opacity=".08"/>
-    <path d="${path('inv')}" fill="none" stroke="#3279ff" stroke-width="2" stroke-dasharray="5 4"/>
-    <path d="${path('pat')}" fill="none" stroke="#8b3eea" stroke-width="2.5"/>
-    <line x1="${X(r.idade)}" x2="${X(r.idade)}" y1="8" y2="${Y(0)}" stroke="#ff9a6b" stroke-width="1.5"/>
-    <line x1="${X(r.idade) - 14}" x2="${X(r.idade) + 14}" y1="${Y(r.needAt)}" y2="${Y(r.needAt)}" stroke="#348352" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="${X(r.idade)}" cy="${Y(pr.pat)}" r="5" fill="#8b3eea" stroke="#fff" stroke-width="2"/>
-    ${r.acaba ? `<circle cx="${X(r.acaba)}" cy="${Y(0)}" r="6" fill="#fff" stroke="#d93a3a" stroke-width="2"/><text x="${X(r.acaba)}" y="${Y(0) - 10}" text-anchor="middle" font-size="10" fill="#d93a3a" font-weight="700">${r.acaba} anos</text>` : ''}
-    ${ticks.map(t => `<text x="${X(t)}" y="${H + 12}" text-anchor="middle" font-size="11" fill="${t === r.idade ? '#0d1733' : '#5b6478'}" font-weight="${t === r.idade ? 700 : 400}">${t}</text>`).join('')}
+/* ---------- Gráfico patrimônio · vistas (Figma: component set 20810:2270, tela 11.13) ----------
+   Geral = plano inteiro · Até os N = fase de acúmulo · Depois dos N = fase de uso. */
+const AP_COR = { meta: '#e77828', invL: '#8fa8fb', invF: 'rgba(143,168,251,.55)', patL: '#348352', patF: 'rgba(102,181,132,.5)' };
+
+function apTicks(r, vista, a0, a1) {
+  const t = [];
+  if (vista === 'ate') { t.push(a0); for (let x = Math.ceil((a0 + 1) / 10) * 10; x < a1; x += 10) t.push(x); t.push(a1); }
+  else if (vista === 'depois') { for (let x = a0; x <= a1; x += 5) t.push(x); if (t[t.length - 1] !== a1) t.push(a1); }
+  else {
+    const q = f => Math.round((a0 + (r.idade - a0) * f) / 5) * 5;
+    t.push(a0, q(1 / 3), q(2 / 3), r.idade, Math.floor(((r.idade + a1) / 2) / 5) * 5, a1);
+  }
+  return [...new Set(t)].filter(x => x >= a0 && x <= a1).sort((x, y) => x - y);
+}
+
+function apChart(r, vista) {
+  const W = 309, H = 214, X0 = 6, X1 = 303, YT = 12, YB = 188;
+  const a0 = vista === 'depois' ? r.idade : r.ia, a1 = vista === 'ate' ? r.idade : VIDA;
+  const max = Math.max(r.needAt, ...r.serie.map(s => s.pat), ...r.ideal.map(s => s.pat)) || 1;
+  const X = age => X0 + (age - a0) / ((a1 - a0) || 1) * (X1 - X0), Y = v => YB - (v / max) * (YB - YT);
+  const vis = s => s.age >= a0 && s.age <= a1;
+  const line = (arr, f) => arr.filter(vis).map((s, i) => `${i ? 'L' : 'M'}${X(s.age).toFixed(1)} ${Y(f(s)).toFixed(1)}`).join(' ');
+  const area = (arr, f) => `${line(arr, f)} L${X(a1).toFixed(1)} ${YB} L${X(a0).toFixed(1)} ${YB} Z`;
+  /* na fase de uso o investido não pode passar do que ainda resta: a faixa azul cai junto com a verde */
+  const vPat = s => s.pat, vInv = s => Math.min(s.inv, s.pat);
+  const gx = X(r.idade).toFixed(1);
+  const pI = r.ideal.find(s => s.age === r.idade), pP = r.serie.find(s => s.age === r.idade);
+  const lab = vista === 'ate' ? `acúmulo dos ${a0} aos ${a1} anos` : vista === 'depois' ? `uso dos ${a0} aos ${a1} anos` : `plano dos ${a0} aos ${a1} anos`;
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="Patrimônio por idade — ${lab}">
+    ${[0, 1, 2, 3].map(i => { const y = (YT + i * (YB - YT) / 3).toFixed(1); return `<line x1="${X0}" x2="${X1}" y1="${y}" y2="${y}" stroke="#e2e5ec" stroke-dasharray="2 3"/>`; }).join('')}
+    <line x1="${gx}" x2="${gx}" y1="${YT}" y2="${YB}" stroke="#c7cdd9" stroke-dasharray="2 3"/>
+    <path d="${area(r.serie, vPat)}" fill="${AP_COR.patF}"/>
+    <path d="${area(r.serie, vInv)}" fill="${AP_COR.invF}"/>
+    <path d="${line(r.serie, vPat)}" fill="none" stroke="${AP_COR.patL}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="${line(r.serie, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="${line(r.ideal, vPat)}" fill="none" stroke="${AP_COR.meta}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pI ? `<circle cx="${gx}" cy="${Y(pI.pat).toFixed(1)}" r="4.5" fill="${AP_COR.meta}" stroke="#fff" stroke-width="2"/>` : ''}
+    ${pP ? `<circle cx="${gx}" cy="${Y(pP.pat).toFixed(1)}" r="4.5" fill="${AP_COR.patL}" stroke="#fff" stroke-width="2"/>` : ''}
+    ${apTicks(r, vista, a0, a1).map(t => `<text x="${X(t).toFixed(1)}" y="${YB + 19}" text-anchor="${t === a0 ? 'start' : t === a1 ? 'end' : 'middle'}" font-size="10" fill="${t === r.idade ? '#363d4a' : '#6e7789'}" font-weight="${t === r.idade ? 600 : 400}">${t}</text>`).join('')}
   </svg>`;
+}
+
+/* chips que trocam a vista (Figma "Seletor de vista" 20810:2139) */
+function apChips(r, vista) {
+  return `<div class="row g1" style="background:#eff1f5;border-radius:9999px;padding:4px">${[['geral', 'Geral'], ['ate', `Até os ${r.idade}`], ['depois', `Depois dos ${r.idade}`]].map(([k, t]) =>
+    `<button type="button" data-act="vista" data-v="${k}" aria-pressed="${k === vista}" style="flex:1;min-width:0;padding:8px 10px;border-radius:9999px;font-size:12px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;${k === vista ? 'background:#2350f5;color:#fff' : 'color:#363d4a'}">${t}</button>`).join('')}</div>`;
+}
+
+function apManchete(r, vista) {
+  const pct = r.needAt ? Math.min(100, Math.round(r.proj / r.needAt * 100)) : 100;
+  const pRend = r.proj ? Math.round(r.retorno / r.proj * 100) : 0;
+  const m = vista === 'ate' ? [`VOCÊ ACUMULA ATÉ OS ${r.idade}`, fmtR(r.proj), `${pRend}% vêm do rendimento, não do seu bolso.`]
+    : vista === 'depois' ? ['SUA RENDA DURA ATÉ', `${r.acaba || VIDA} anos`, r.acaba ? `${VIDA - r.acaba} anos a menos que os ${VIDA} do plano.` : `Sua renda dura todo o plano, até os ${VIDA}.`]
+      : ['VOCÊ ALCANÇA', `${pct}% da meta`, `Investindo ${fmtR(r.aporteNec)}/mês, você fecha o plano.`];
+  return `<div class="col" style="gap:4px;padding-top:16px">
+    <p style="font-size:11px;font-weight:600;line-height:15px;letter-spacing:.66px;color:#6e7789">${m[0]}</p>
+    <p style="font-size:28px;font-weight:700;line-height:38px;color:#030c23">${m[1]}</p>
+    <p style="font-size:13px;line-height:17px;color:#363d4a">${m[2]}</p></div>`;
+}
+
+function apLegenda(r, vista) {
+  const swL = `<i style="display:block;width:22px;height:3px;border-radius:9999px;background:${AP_COR.meta};flex:none"></i>`;
+  const swA = (f, b) => `<i style="display:block;width:22px;height:12px;border-radius:3px;background:${f};border:1.5px solid ${b};flex:none"></i>`;
+  const row = (sw, lab, val, { semi = false, cor = '#030c23' } = {}) =>
+    `<div class="row jb" style="align-items:center;gap:8px;padding:8px 0">
+       <span class="row g2" style="align-items:center;min-width:0">${sw}<span style="font-size:13px;line-height:18px;color:#363d4a${semi ? ';font-weight:600' : ''}">${lab}</span></span>
+       <span style="font-size:14px;font-weight:600;line-height:20px;color:${cor};white-space:nowrap;flex:none">${val}</span></div>`;
+  const pInv = r.proj ? Math.round(r.invAt / r.proj * 100) : 0;
+  const body = vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.invAt)} · ${pInv}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.retorno)} · ${100 - pInv}%`)
+    : vista === 'depois' ? row('', 'Renda mensal', `${fmtR(r.rendaPossivel)}/mês`) + row(swL, 'Com o aporte ideal, duraria até', `${VIDA} anos`, { semi: true, cor: AP_COR.meta })
+      : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
+  return `<div class="col" style="padding-top:16px">${body}</div>`;
 }
 screen('aposRes', {
   cls: 'bh',
-  render: (p) => { const r = apCalc(); const gap = r.needAt - r.proj;
-    const legend = `<div class="row g3 cap" style="flex-wrap:wrap;color:var(--bh-muted)"><span class="row g1"><i style="width:14px;height:2.5px;background:#8b3eea;display:block"></i>Patrimônio projetado</span><span class="row g1"><i style="width:14px;border-top:2px dashed #3279ff;display:block"></i>Total investido</span><span class="row g1"><i style="width:14px;height:3px;background:#348352;display:block"></i>Patrimônio necessário</span></div>`;
+  render: (p) => { const r = apCalc(); const gap = r.needAt - r.proj; const vista = p.vista || 'geral';
     const alt = (t, act) => `<button type="button" class="row g3 ais" data-act="${act}" style="text-align:left;padding:8px 0"><span style="color:${r.fecha ? 'var(--success)' : 'var(--warning)'}">${ic('circle-arrow-right', 20)}</span><span class="b14 semi" style="color:var(--bh-ink)">${t}</span></button>`;
-    const status = r.fecha ? `<div class="card col g2" style="background:var(--success-bg);border-color:#bfe5cc"><p class="h4" style="color:var(--bh-ink)">Encontramos um caminho!</p><p class="b14" style="color:var(--bh-ink)">Ao investir <b>${fmtBRL(r.aporte)}</b> por mês você alcança a renda desejada a partir dos ${r.idade} anos.${r.aporteNec < r.aporte * 0.98 ? ` Na verdade, ${fmtBRL(r.aporteNec)} por mês já seriam suficientes.` : ''}</p><p class="b14" style="color:var(--bh-ink)">Agora você pode conhecer a SuperPrevidência, uma curadoria de soluções para colocar seu plano em prática:</p>${btn('Ir para SuperPrevidência', { act: 'superp', attrs: 'style="background:var(--success)"' })}</div>`
+    const status = r.fecha ? `<div class="card col g2" style="background:var(--success-bg);border-color:#bfe5cc"><p class="h4" style="color:var(--bh-ink)">Encontramos um caminho!</p><p class="b14" style="color:var(--bh-ink)">Ao investir <b>${fmtR(r.aporte)}</b> por mês você alcança a renda desejada a partir da idade alvo.${r.aporteNec < r.aporte * 0.98 ? ` Na verdade, ${fmtR(r.aporteNec)} por mês já seriam suficientes.` : ''}</p><p class="b14" style="color:var(--bh-ink)">Agora você pode conhecer a SuperPrevidência, uma curadoria de soluções para colocar seu plano em prática:</p>${btn('Ir para SuperPrevidência', { act: 'superp', attrs: 'style="background:var(--success)"' })}</div>`
       : `<div class="card col g2" style="border-color:${r.acaba && r.acaba >= r.idade + 8 ? '#f6c59f' : '#f2b4b4'}"><div class="row jb"><p class="h4" style="color:var(--bh-ink)">Ajuste necessário</p>${r.acaba && r.acaba >= r.idade + 8 ? '<span class="badge warning">Atenção</span>' : ''}</div>
           <p class="b14" style="color:var(--bh-muted)">${r.acaba && r.acaba >= r.idade + 8 ? `Com as premissas atuais, há recursos para a aposentadoria, mas a reserva financeira se esgota aos <b>${r.acaba} anos</b>.` : `Mantendo aportes de <b>${fmtBRL(r.aporte)}/mês</b>, há uma diferença de <b>${fmtM(gap)}</b> para atingir o valor ideal aos <b>${r.idade} anos</b>.`}</p>
           <p class="b16 bold" style="color:var(--bh-ink);margin-top:6px">Veja como resolver</p><p class="b14" style="color:var(--bh-muted)">Toque em uma alternativa para simular com ela na hora.</p>
@@ -169,20 +232,22 @@ screen('aposRes', {
           ${alt(`Ajustar a renda desejada para ${fmtBRL(Math.floor(r.rendaPossivel / 100) * 100)}/mês`, 'altR')}
           ${r.idadeOk ? alt(`Aposentar aos ${r.idadeOk} anos`, 'altI') : ''}
           ${alt('Combinar alternativas (aplique mudanças no aporte, renda desejada ou idade de aposentadoria, ao mesmo tempo)', 'edit')}</div>`;
-    return apScreen({ title: 'Aposentadoria Inteligente', sub: r.fecha ? 'Veja como seu patrimônio pode evoluir ao longo da vida e durante a aposentadoria' : 'Esta é a curva do seu futuro financeiro. Acompanhe a evolução do seu patrimônio até a aposentadoria.',
-      body: `<div class="bh-card"><p class="h3" style="color:var(--bh-ink)">Seu dinheiro no tempo</p><p class="cap" style="color:var(--bh-muted)">Evolução estimada do seu patrimônio dos ${r.ia} aos ${VIDA} anos.</p>${legend}${apChart(r)}
-          <p class="b14 bold row g2" style="color:var(--bh-ink)"><i style="width:3px;height:16px;background:#ff9a6b;display:block"></i>Aos ${r.idade} anos · ${r.ano}</p>
-          <div class="row jb" style="background:var(--bg-lighter);border-radius:10px;padding:12px"><span class="b14 bold" style="color:var(--bh-ink)">Patrimônio necessário</span><span class="b16 bold" style="color:var(--bh-ink)">${fmtR(r.needAt)}</span></div>
-          ${[['Patrimônio projetado', r.proj, '#8b3eea'], ['Total investido por você', (r.serie.find(s => s.age === r.idade) || {}).inv || 0, '#3279ff'], ['Retorno dos investimentos', Math.max(0, r.proj - ((r.serie.find(s => s.age === r.idade) || {}).inv || 0)), '#348352']].map(([a, v, c]) => `<div class="row jb" style="padding:4px 0"><span class="b14" style="color:var(--bh-ink)">${a}</span><span class="b14 bold" style="color:${c}">${fmtR(v)}</span></div>`).join('')}
-          <p class="cap" style="color:var(--bh-muted)">Consideramos uma rentabilidade líquida padrão de 5% a.a. acima da inflação (IPCA).</p></div>
+    return apScreen({ title: 'Aposentadoria Inteligente', sub: 'Veja como seu patrimônio pode evoluir ao longo da vida e durante a aposentadoria',
+      body: `<div class="bh-card"><p class="h3" style="color:var(--bh-ink)">Seu dinheiro no tempo</p><p class="b14" style="color:#6e7789">Quanto você acumula, quanto rende e até quando dura.</p>
+          <div style="padding-top:16px">${apChips(r, vista)}</div>${apManchete(r, vista)}
+          <div style="padding-top:16px">${apChart(r, vista)}</div>${apLegenda(r, vista)}
+          <div style="height:1px;background:#f1f5f9;margin-top:16px"></div>
+          <div class="row jb" style="align-items:center;margin-top:16px;border:1px solid #e2e5ec;border-radius:12px;padding:16px"><span class="b14 semi" style="color:var(--bh-ink)">Aporte necessário</span><span class="h3" style="color:var(--bh-ink)">${fmtR(r.aporteNec)}/mês</span></div>
+          <p style="padding-top:16px;font-size:11px;line-height:17px;color:#6e7789">Simulação considerando rentabilidade líquida de 5% ao ano acima da inflação (IPCA)</p></div>
         ${status}
         <div class="bh-card"><button type="button" class="row g3" data-act="tgInfo" aria-expanded="${!!p.info}"><span class="bh-ic">${ic('user', 18)}</span><span class="f1 b16 semi" style="color:var(--bh-ink);text-align:left">Informações consideradas para este cálculo</span>${ic(p.info ? 'chevron-up' : 'chevron-down', 18)}</button>
-          ${p.info ? `<div class="col g2" style="background:var(--bg-lighter);border-radius:10px;padding:12px">${[['Idade de aposentadoria', r.idade + ' anos'], ['Renda desejada', fmtR(r.renda) + '/mês'], ['Rendas complementares', fmtR(r.comp) + '/mês'], ['Patrimônio atual', fmtR(r.P0)], ['Investimento mensal', fmtR(r.aporte)], ['Projetos futuros', apState().projetos.length + ' cadastrados']].map(([a, v]) => `<div class="row jb"><span class="b14" style="color:var(--bh-muted)">${a}</span><span class="b14 bold" style="color:var(--bh-ink)">${v}</span></div>`).join('')}</div>` : ''}</div>
-        <p class="cap center" style="color:var(--bh-muted)">Este resultado é uma simulação, não uma promessa de rentabilidade. Todos os valores estão em moeda de hoje.</p>`,
+          ${p.info ? `<div class="col g3" style="background:var(--bg-lighter);border-radius:8px;padding:16px">${[['Idade de aposentadoria', r.idade + ' anos'], ['Renda desejada', fmtR(r.renda) + '/mês'], ['Outras fontes de renda', fmtR(r.comp) + '/mês'], ['Investimento atual', fmtR(r.P0)]].map(([a, v]) => `<div class="row jb"><span class="b14" style="color:#737373">${a}</span><span class="b14 semi" style="color:#404040">${v}</span></div>`).join('')}</div>` : ''}</div>
+        <p class="cap center" style="color:#6e7789">As simulações são estimativas e não representam garantia de rentabilidade.</p>`,
       foot: r.fecha ? btn('Ir para SuperPrevidência', { cls: 'lg', act: 'superp', attrs: 'style="background:var(--bh-blue)"' }) + btn('Editar e simular novamente', { v: 'o', act: 'edit', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })
         : btn('Ajustar e simular novamente', { cls: 'lg', act: 'edit', attrs: 'style="background:var(--bh-blue)"' }) + btn('Salvar assim mesmo', { v: 'o', act: 'save', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' }) }); },
   acts: {
     tgInfo: () => { const p = stack[stack.length - 1].p; p.info = !p.info; rerender(); },
+    vista: (el) => { const p = stack[stack.length - 1].p; p.vista = el.dataset.v; rerender(); },
     edit: () => backTo('apos2'),
     altA: () => { const r = apCalc(); apState().aporteTxt = fmtBRL(Math.ceil(r.aporteNec / 10) * 10); rerender(); toast('Simulamos com o novo aporte'); },
     altR: () => { const r = apCalc(); apState().rendaTxt = fmtBRL(Math.floor(r.rendaPossivel / 100) * 100); rerender(); toast('Simulamos com a nova renda'); },
@@ -192,4 +257,5 @@ screen('aposRes', {
   },
 });
 flowEntry('BlueHub', 'Aposentadoria inteligente', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; S.apos = null; reset('bhHome'); go('apos1'); });
-flowEntry('BlueHub', 'Aposentadoria · resultado de exemplo', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; S.apos = { idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }, { nome: 'INSS', valor: 1800 }], patTxt: 'R$ 20.000,00', aporteTxt: 'R$ 1.000,00', projetos: [{ nome: 'Troca do carro', cat: 'Veículo', data: '12/03/2034', ano: 2034, valor: -90000 }] }; reset('bhHome'); go('apos2'); go('aposRes'); });
+flowEntry('BlueHub', 'Aposentadoria · resultado de exemplo', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; /* premissas do exemplo iguais às da tela 11.13 do Figma (idade 65 · renda 14.300 · outras fontes 2.000 · investimento atual 88.000) */
+S.apos = { idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }], patTxt: 'R$ 88.000,00', aporteTxt: 'R$ 1.000,00', projetos: [] }; reset('bhHome'); go('apos2'); go('aposRes'); });
