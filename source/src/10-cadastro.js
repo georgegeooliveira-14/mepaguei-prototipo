@@ -8,12 +8,12 @@ screen('splash', {
   mount: (el, p) => later(() => reset((p && p.next) || 'onboarding', {}, 'fade'), 1700),
 });
 
+/* 4 slides conforme Figma 9615:33323 (section "Onboarding", telas 03.01.01 a 03.01.03) */
 const OB = [
-  { img: 'mia-avatar.webp', w: 248, h: 283, t: 'Assistente financeiro', d: 'A MIA te ajuda a manter as finanças em dia com lembretes e notificações.', round: true },
-  { img: 'ob-poupanca.png', w: 271, h: 247, t: 'Poupança Automática', d: 'Defina um objetivo e nós guardamos<br>o valor para você, sem esforço.' },
-  { img: 'ob-troco.png', w: 272, h: 205, t: 'Troco Inteligente', d: 'Arredonde os centavos de suas compras<br>e nós guardamos a diferença para você.' },
-  { img: 'ob-saldo.png', w: 249, h: 227, t: 'Saldo seguro', d: 'Uma previsão dos seus próximos 30 dias para você saber quanto tem livre.' },
-  { img: 'ob-placar.png', w: 265, h: 265, t: 'Placar do Bem', d: 'Guarde um valor no automático quando seu time vencer e atinja seu objetivo com leveza' },
+  { img: 'mia-avatar.webp', w: 199, h: 227, t: 'Sua Assistente Financeira', d: 'Conheça a MIA. Ela acompanha seu dinheiro e avisa o que importa antes de virar problema.', round: true },
+  { img: 'ob-poupanca.png', w: 250, h: 204, t: 'Poupança Automática', d: 'Você escolhe como guardar e a MIA faz o resto, no automático.' },
+  { img: 'ob-clareza.png', w: 225, h: 204, t: 'Clareza para decidir', d: 'Veja suas faturas antes de elas chegarem e saiba quanto dá para gastar.' },
+  { img: 'ob-controle.png', w: 204, h: 204, t: 'Tudo sob controle!', d: 'A MIA cuida das suas metas, encontra assinaturas esquecidas e avisa antes dos gastos chegarem.' },
 ];
 screen('onboarding', {
   render: (p) => {
