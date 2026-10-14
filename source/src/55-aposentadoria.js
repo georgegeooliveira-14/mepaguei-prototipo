@@ -3,7 +3,7 @@
 const RENT = 0.05, IM = Math.pow(1 + RENT, 1 / 12) - 1, VIDA = 90;
 const fmtM = v => { const a = Math.abs(v); const s = a >= 1e6 ? 'R$ ' + (a / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' M' : 'R$ ' + Math.round(a).toLocaleString('pt-BR'); return (v < 0 ? '−' : '') + s; };
 function idadeAtual() { const d = parseData(S.user.nasc); if (!d) return 30; const t = hoje(); let a = t.getFullYear() - d.getFullYear(); if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--; return a; }
-function apState() { return S.apos ??= { idadeTxt: '', rendaTxt: '', fontes: [], patTxt: '', aporteTxt: '', projetos: [] }; }
+function apState() { return S.apos ??= { idadeTxt: '', rendaTxt: '', fontes: [], patTxt: '', aporteTxt: '' }; }
 
 /* ---------- cálculo ---------- */
 function apCalc(over = {}) {
@@ -13,7 +13,6 @@ function apCalc(over = {}) {
   const saque = Math.max(0, renda - comp);
   const nAcc = Math.max(0, (idade - ia) * 12), nRet = Math.max(1, (VIDA - idade) * 12);
   const needAt = saque * (1 - Math.pow(1 + IM, -nRet)) / IM;
-  const evAt = ageY => a.projetos.filter(p => p.ano === ageY);
   const yearNow = hoje().getFullYear();
   /* simula a curva ano a ano para um aporte qualquer: serve para a curva real e para a ideal */
   const sim = (ap) => {
@@ -21,7 +20,6 @@ function apCalc(over = {}) {
     for (let age = ia; age <= VIDA; age++) {
       s.push({ age, pat: Math.max(0, pat), inv: Math.max(0, inv) });
       for (let m = 0; m < 12; m++) { pat *= 1 + IM; if (age < idade) { pat += ap; inv += ap; } else pat -= saque; }
-      a.projetos.forEach(p => { if (p.ano === yearNow + (age - ia) + 1) { pat += p.valor; if (p.valor > 0) inv += p.valor; } });
     }
     return s;
   };
@@ -29,8 +27,7 @@ function apCalc(over = {}) {
   const proj = serie.find(s => s.age === idade)?.pat ?? 0;
   const acaba = serie.find(s => s.age > idade && s.pat <= 0)?.age || null;
   const fv = n => (Math.pow(1 + IM, n) - 1) / IM;
-  const extra = a.projetos.reduce((s, p) => { const y = p.ano - yearNow; const mLeft = Math.max(0, nAcc - y * 12); return s + p.valor * Math.pow(1 + IM, mLeft); }, 0);
-  const aporteNec = nAcc ? Math.max(0, (needAt - P0 * Math.pow(1 + IM, nAcc) - extra) / fv(nAcc)) : 0;
+  const aporteNec = nAcc ? Math.max(0, (needAt - P0 * Math.pow(1 + IM, nAcc)) / fv(nAcc)) : 0;
   /* curva "Meta · necessário" (Figma 20810:2161 "Linha · ideal"): trajetória com o aporte ideal,
      que acumula até o patrimônio necessário na idade-alvo e se esgota no fim do plano */
   const ideal = sim(aporteNec);
@@ -50,7 +47,7 @@ function apCalcLite(idade, renda, aporte) {
 function apScreen({ title, sub, dots = 0, body, foot, back = true }) {
   return `${BH_DECO}${statusBar(true)}
   <div class="row jb" style="position:relative;z-index:2;padding:8px 20px 0;height:36px"><button type="button" data-back aria-label="Voltar" style="color:#fff;${back ? '' : 'visibility:hidden'}">${ic('chevron-left', 24)}</button><p class="h2" style="color:#fff;flex:1;text-align:center">${title}</p>
-    <span class="row g1" style="width:40px;justify-content:flex-end">${dots ? [1, 2, 3, 4].map(k => `<i style="display:block;height:4px;border-radius:2px;width:${k === dots ? 12 : 4}px;background:${k <= dots ? '#fff' : 'rgba(80,140,255,.8)'}"></i>`).join('') : ''}</span></div>
+    <span class="row g1" style="width:40px;justify-content:flex-end">${dots ? [1, 2, 3].map(k =>`<i style="display:block;height:4px;border-radius:2px;width:${k === dots ? 12 : 4}px;background:${k <= dots ? '#fff' : 'rgba(80,140,255,.8)'}"></i>`).join('') : ''}</span></div>
   <p class="b16" style="position:relative;z-index:2;padding:20px 20px 24px;color:#e4e9f5">${sub}</p>
   <div class="sheet" style="background:#fff"><div class="sheet-in" style="padding:24px 20px 16px">${body}</div>${foot ? `<div class="sheet-foot" style="background:#fff">${foot}</div>` : ''}</div>${homeInd()}`;
 }
@@ -61,7 +58,7 @@ screen('apos1', {
   render: () => `<div style="position:absolute;inset:0;background:#fff"></div>${[260, 380].map(s => `<span class="bh-rings" style="left:${-s / 2 + 20}px;top:${-s / 2 - 20}px;width:${s}px;height:${s}px;border-color:rgba(50,121,255,.5)"></span>`).join('')}${statusBar()}
   <div class="row jb" style="position:relative;padding:8px 20px">${`<button type="button" data-back aria-label="Voltar" style="color:var(--bh-ink)">${ic('chevron-left', 24)}</button>`}${BH_LOGO_D}</div>
   <div class="col g4 px5" style="position:relative;flex:1;justify-content:flex-end;padding-bottom:20px">
-    <p class="h1" style="color:var(--bh-ink)">Quanto você precisa para se aposentar?</p><p class="b16" style="color:var(--bh-muted)">4 passos simples para entender o caminho até sua independência financeira</p>
+    <p class="h1" style="color:var(--bh-ink)">Quanto você precisa para se aposentar?</p><p class="b16" style="color:var(--bh-muted)">3 passos simples para entender o caminho até sua independência financeira</p>
     <p class="b14 bold" style="color:var(--bh-ink)">O que você vai descobrir</p>
     ${[['chart-line', 'O potencial dos seus investimentos'], ['shield-check', 'Como construir sua Super Previdência'], ['rocket', 'Escolhas que aceleram seus objetivos']].map(([i, t]) => `<div class="row g3"><span class="bh-ic">${ic(i, 18)}</span><p class="b14" style="color:var(--bh-ink)">${t}</p></div>`).join('')}
     <p class="cap" style="color:var(--bh-muted)">Leva menos de dois minutos. Você pode simular quantas vezes quiser.</p>
@@ -110,43 +107,10 @@ screen('apos4', {
   render: () => apScreen({ title: 'Patrimônio inicial', dots: 3, sub: 'Informe o que você já acumulou e veja a evolução do seu patrimônio ao longo do tempo',
     /* o campo de aporte mensal saiu conforme o Figma 11.04 (14014:31024) */
     body: `${field({ id: 'ap', label: 'Você já possui investimentos?', ph: 'R$ 0,00', bind: 'apos.patTxt', mask: 'brl', helper: 'Informe os valores aplicados em bancos, corretoras ou outras instituições financeiras. <b>Não inclua casa, carro ou terrenos.</b>' })}
-      <p class="cap" style="color:var(--bh-muted);margin-top:auto">Caso não tenha investimentos, basta seguir para o próximo passo.</p>`,
-    foot: btn('Próximo', { cls: 'lg', go: 'apos5', attrs: 'style="background:var(--bh-blue)"' }) }),
+      <p class="cap" style="color:var(--bh-muted);margin-top:auto">Caso não tenha investimentos, basta gerar sua projeção.</p>`,
+    foot: btn('Gerar minha projeção', { cls: 'lg', act: 'gerar', attrs: 'style="background:var(--bh-blue)"' }) }),
+  acts: { gerar: () => go('bhProc', { msg: 'Analisando suas informações...', next: 'aposRes' }) },
 });
-screen('apos5', {
-  cls: 'bh',
-  render: () => { const a = apState();
-    return apScreen({ title: 'Projetos futuros', dots: 4, sub: 'Eventos previstos que impactarão sua curva de acúmulo de patrimônio.',
-      body: a.projetos.length ? `<p class="b16 bold" style="color:var(--bh-ink)">Seus projetos cadastrados</p>${a.projetos.map((p, k) => `<div class="bh-card row g3" style="flex-direction:row;align-items:center"><span class="bh-ic" style="${p.valor > 0 ? 'background:var(--success-bg);color:var(--success)' : ''}">${ic(p.valor > 0 ? 'arrow-down-to-line' : { Viagem: 'plane', Veículo: 'car', Casa: 'house', Educação: 'graduation-cap', Saúde: 'heart-pulse' }[p.cat] || 'target', 18)}</span><div class="f1"><p class="b16 semi" style="color:var(--bh-ink)">${esc(p.nome)}</p><p class="b14" style="color:var(--bh-muted)">${p.data}</p></div><p class="b14 bold" style="color:${p.valor > 0 ? 'var(--success)' : 'var(--danger)'}">${p.valor > 0 ? '+' : '-'}${fmtR(Math.abs(p.valor))}</p><button type="button" data-act="pDel" data-k="${k}" aria-label="Remover" style="color:var(--bh-muted)">${ic('x', 16)}</button></div>`).join('')}
-        ${btn(ic('plus', 14) + ' Adicionar projeto', { v: 'o', cls: 'btn-xs auto', act: 'pAdd', attrs: 'style="align-self:flex-start;padding:0 14px;color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}`
-        /* estado vazio em card cinza, alinhado à esquerda e sem ícone (Figma 11.05 · 14014:31150) */
-        : `<div class="col g3" style="background:var(--bg-lighter);border-radius:var(--r-xl);padding:20px"><p class="b16 bold" style="color:var(--bh-ink)">Nenhum projeto cadastrado</p><p class="b14" style="color:var(--bh-muted)">Sua simulação considera o cenário base de acúmulo e aposentadoria. Inclua eventos planejados, como aquisição de ativos, viagens ou aportes pontuais para visualizar o impacto na sua curva de patrimônio.</p>${btn(ic('plus', 16) + ' Adicionar projeto', { v: 'o', act: 'pAdd', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>`,
-      foot: btn('Gerar minha projeção', { cls: 'lg', act: 'gerar', attrs: 'style="background:var(--bh-blue)"' }) }); },
-  acts: {
-    pAdd: () => projetoSheet(),
-    pDel: (b) => { apState().projetos.splice(+b.dataset.k, 1); rerender(); },
-    gerar: () => go('bhProc', { msg: 'Analisando suas informações...', next: 'aposRes' }),
-  },
-});
-function projetoSheet() {
-  S.tmpP = { tipo: 'saida', cat: '', nome: '', data: '', valorTxt: '' };
-  const draw = () => { const t = S.tmpP; closeOverlays(true);
-    sheetForm(`<p class="h4" style="color:var(--bh-ink)">Novo projeto</p><p class="b14" style="color:var(--bh-muted)">Uma despesa tira dinheiro do patrimônio numa data. Um aporte coloca dinheiro nele.</p>
-      <div class="seg">${[['saida', 'Saída de capital'], ['entrada', 'Entrada de capital']].map(([k, l]) => `<button type="button" class="${t.tipo === k ? 'on' : ''}" data-act="pTipo" data-k="${k}">${l}</button>`).join('')}</div>
-      ${t.tipo === 'saida' ? `<div class="col g2"><p class="fld-l">Categoria</p><div class="row g2" style="flex-wrap:wrap">${['Viagem', 'Veículo', 'Casa', 'Educação', 'Saúde', 'Outro'].map(c => `<button type="button" class="chip" data-act="pCat" data-c="${c}" style="${t.cat === c ? 'background:var(--bh-blue);border-color:var(--bh-blue);color:#fff' : ''}">${c}</button>`).join('')}</div></div>` : ''}
-      ${field({ id: 'pn', label: t.tipo === 'saida' ? 'Nome do projeto' : 'De onde vem esse dinheiro', ph: t.tipo === 'saida' ? 'Ex: entrada da casa' : 'Ex: venda de um imóvel', bind: 'tmpP.nome' })}
-      ${field({ id: 'pd', label: t.tipo === 'saida' ? 'Data de execução' : 'Quando você espera receber', ph: 'dd/mm/aaaa', bind: 'tmpP.data', mask: 'data' })}
-      ${field({ id: 'pv', label: 'Valor total', ph: 'R$ 0,00', bind: 'tmpP.valorTxt', mask: 'brl' })}`,
-      btn('Adicionar', { act: 'pSave', cls: 'js-next', attrs: 'style="background:var(--bh-blue)"' }) + btn('Cancelar', { v: 'o', act: 'dlgClose' }),
-      () => { const d = parseData(S.tmpP.data); return S.tmpP.nome.trim() && d && d > hoje() && parseBRL(S.tmpP.valorTxt) > 0 && (S.tmpP.tipo === 'entrada' || S.tmpP.cat); }); };
-  S.flags.pDraw = draw; draw();
-}
-Object.assign(GLOBAL_ACTS, {
-  pTipo: (b) => { S.tmpP.tipo = b.dataset.k; S.flags.pDraw(); },
-  pCat: (b) => { S.tmpP.cat = b.dataset.c; S.flags.pDraw(); },
-  pSave: () => { const t = S.tmpP; const v = parseBRL(t.valorTxt); apState().projetos.push({ nome: t.nome.trim(), cat: t.cat, data: t.data, ano: parseData(t.data).getFullYear(), valor: t.tipo === 'saida' ? -v : v }); closeOverlays(true); rerender(); },
-});
-
 /* ---------- resultado ---------- */
 /* ---------- Gráfico patrimônio · vistas (Figma: component set 20810:2270, tela 11.13) ----------
    Geral = plano inteiro · Até os N = fase de acúmulo · Depois dos N = fase de uso. */
@@ -259,4 +223,4 @@ screen('aposRes', {
 });
 flowEntry('BlueHub', 'Aposentadoria inteligente', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; S.apos = null; reset('bhHome'); go('apos1'); });
 flowEntry('BlueHub', 'Aposentadoria · resultado de exemplo', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; /* premissas do exemplo iguais às da tela 11.13 do Figma (idade 65 · renda 14.300 · outras fontes 2.000 · investimento atual 88.000) */
-S.apos = { idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }], patTxt: 'R$ 88.000,00', aporteTxt: 'R$ 1.000,00', projetos: [] }; reset('bhHome'); go('apos2'); go('aposRes'); });
+S.apos = { idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }], patTxt: 'R$ 88.000,00', aporteTxt: 'R$ 1.000,00' }; reset('bhHome'); go('apos2'); go('aposRes'); });
