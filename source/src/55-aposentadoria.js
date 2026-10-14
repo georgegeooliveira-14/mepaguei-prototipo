@@ -44,12 +44,22 @@ function apCalcLite(idade, renda, aporte) {
 }
 
 /* ---------- moldura escura BlueHub ---------- */
-function apScreen({ title, sub, dots = 0, body, foot, back = true }) {
-  return `${BH_DECO}${statusBar(true)}
+/* `subRola` põe o subtítulo dentro da área de rolagem: a página rola até encostar
+   no cabeçalho, em vez de rolar só a folha branca (usado na tela do gráfico). */
+function apScreen({ title, sub, dots = 0, body, foot, back = true, subRola = false }) {
+  const topo = `${BH_DECO}${statusBar(true)}
   <div class="row jb" style="position:relative;z-index:2;padding:8px 20px 0;height:36px"><button type="button" data-back aria-label="Voltar" style="color:#fff;${back ? '' : 'visibility:hidden'}">${ic('chevron-left', 24)}</button><p class="h2" style="color:#fff;flex:1;text-align:center">${title}</p>
-    <span class="row g1" style="width:40px;justify-content:flex-end">${dots ? [1, 2, 3].map(k =>`<i style="display:block;height:4px;border-radius:2px;width:${k === dots ? 12 : 4}px;background:${k <= dots ? '#fff' : 'rgba(80,140,255,.8)'}"></i>`).join('') : ''}</span></div>
+    <span class="row g1" style="width:40px;justify-content:flex-end">${dots ? [1, 2, 3].map(k =>`<i style="display:block;height:4px;border-radius:2px;width:${k === dots ? 12 : 4}px;background:${k <= dots ? '#fff' : 'rgba(80,140,255,.8)'}"></i>`).join('') : ''}</span></div>`;
+  const rodape = foot ? `<div class="sheet-foot" style="background:#fff">${foot}</div>` : '';
+  if (subRola) return `${topo}
+  <div class="sheet" style="background:transparent;border-radius:0">
+    <div class="sheet-in" style="padding:0;gap:0">
+      <p class="b16" style="flex:none;padding:20px 20px 24px;color:#e4e9f5">${sub}</p>
+      <div class="col g6" style="flex:1 0 auto;background:#fff;border-radius:32px 32px 0 0;padding:24px 20px 16px">${body}</div>
+    </div>${rodape}</div>${homeInd()}`;
+  return `${topo}
   <p class="b16" style="position:relative;z-index:2;padding:20px 20px 24px;color:#e4e9f5">${sub}</p>
-  <div class="sheet" style="background:#fff"><div class="sheet-in" style="padding:24px 20px 16px">${body}</div>${foot ? `<div class="sheet-foot" style="background:#fff">${foot}</div>` : ''}</div>${homeInd()}`;
+  <div class="sheet" style="background:#fff"><div class="sheet-in" style="padding:24px 20px 16px">${body}</div>${rodape}</div>${homeInd()}`;
 }
 const dica = t => `<div class="col g2 center" style="align-items:center;margin-top:auto;padding-top:16px"><span class="bh-ic">${ic('info', 18)}</span><p class="b14 bold" style="color:var(--bh-ink)">Dica importante</p><p class="b14" style="color:var(--bh-muted)">${t}</p></div>`;
 
@@ -197,7 +207,7 @@ screen('aposRes', {
           ${alt(`Ajustar a renda desejada para ${fmtBRL(Math.floor(r.rendaPossivel / 100) * 100)}/mês`, 'altR')}
           ${r.idadeOk ? alt(`Aposentar aos ${r.idadeOk} anos`, 'altI') : ''}
           ${alt('Combinar alternativas (aplique mudanças no aporte, renda desejada ou idade de aposentadoria, ao mesmo tempo)', 'edit')}</div>`;
-    return apScreen({ title: 'Aposentadoria Inteligente', sub: 'Veja como seu patrimônio pode evoluir ao longo da vida e durante a aposentadoria',
+    return apScreen({ title: 'Aposentadoria Inteligente', sub: 'Veja como seu patrimônio pode evoluir ao longo da vida e durante a aposentadoria', subRola: true,
       body: `<div class="bh-card"><p class="h3" style="color:var(--bh-ink)">Seu dinheiro no tempo</p><p class="b14" style="color:#6e7789">Quanto você acumula, quanto rende e até quando dura.</p>
           <div style="padding-top:16px">${apChips(r, vista)}</div>${apManchete(r, vista)}
           <div style="padding-top:16px">${apChart(r, vista)}</div>${apLegenda(r, vista)}
