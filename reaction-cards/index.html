@@ -199,7 +199,7 @@ footer{margin-top:22px;text-align:center;color:var(--faint);font-size:12px}
       <p class="eyebrow" style="margin-bottom:6px">Colar códigos recebidos</p>
       <p style="margin:0 0 8px;font-size:13px">Cole aqui os códigos que Arthur, Melissa e Lab enviaram (um por linha).</p>
       <textarea class="codebox" id="paste" placeholder="MP1:..."></textarea>
-      <button class="btn sm" id="load" style="margin-top:10px">Carregar</button>
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="load">Carregar</button><button class="btn sm ghost" id="reset">Limpar respostas</button></div>
     </div>
 
     <div id="res-body"></div>
@@ -379,6 +379,7 @@ function renderTargetSetter(){
 // RESULTADOS
 $("#back").onclick=()=>show("intro");
 $("#load").onclick=()=>{ loadPasted(); };
+$("#reset").onclick=()=>{ if(!confirm("Limpar as respostas guardadas NESTE aparelho e o campo de códigos?\n\nOs códigos que os usuários já geraram continuam valendo — é só colar de novo.")) return; try{localStorage.removeItem(LS);}catch(e){} $("#paste").value=""; renderResults(); };
 function gatherData(){
   const map={};
   // localStorage deste aparelho
