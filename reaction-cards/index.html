@@ -426,6 +426,9 @@ $("#export").onclick=()=>{
   const a=document.createElement("a"); a.href=url; a.download="reaction-cards-mepaguei.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
 };
 
+// link por pessoa (?who=Arthur|Melissa|Lab) pré-seleciona o respondente
+(function(){ try{ var pre=new URLSearchParams(location.search).get('who');
+  if(pre){ var b=document.querySelector('#who button[data-who="'+pre+'"]'); if(b){ b.click(); } } }catch(e){} })();
 // start
 if(location.hash==="#resultados"){ show("results"); renderTargetSetter(); loadPasted(); } else { show("intro"); }
 </script>
