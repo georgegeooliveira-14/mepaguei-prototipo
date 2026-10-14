@@ -71,9 +71,9 @@ screen('apos2', {
   cls: 'bh',
   render: () => { const ia = idadeAtual(); return apScreen({ title: 'Meta de aposentadoria', dots: 1, sub: 'Defina quando você pretende se aposentar e a renda mensal necessária para manter seu estilo de vida',
     body: `<p class="b14" style="background:var(--bg-lighter);border-radius:var(--r-xl);padding:10px 14px;color:var(--bh-muted)">Idade atual: <b style="color:var(--bh-ink)">${ia} anos</b></p>
-      ${field({ id: 'ai', label: 'Idade de aposentadoria', ph: 'ex: 65', bind: 'apos.idadeTxt', mask: 'int' })}<p class="fld-h err" id="aerr" hidden>Escolha uma idade entre ${ia + 1} e 80 anos.</p>
+      ${field({ id: 'ai', label: 'Idade de aposentadoria', ph: 'Ex: 65', bind: 'apos.idadeTxt', mask: 'int' })}<p class="fld-h err" id="aerr" hidden>Escolha uma idade entre ${ia + 1} e 80 anos.</p>
       ${field({ id: 'ar', label: 'Renda mensal desejada', ph: 'R$ 0,00', bind: 'apos.rendaTxt', mask: 'brl', helper: 'Considere o poder de compra de hoje' })}
-      ${dica('Adiar a aposentadoria em poucos anos costuma reduzir o aporte mensal necessário.')}`,
+      ${dica('Ajustar o prazo da aposentadoria pode reduzir o esforço mensal necessário para construir seu futuro')}`,
     foot: btn('Próximo', { cls: 'lg', next: true, go: 'apos3', attrs: 'style="background:var(--bh-blue)"' }) }); },
   mount: () => { apState(); },
   onInput: (i, el) => { if (i.id === 'ai') { const v = +i.value; $('#aerr', el).hidden = !i.value || i.value.length < 2 || (v > idadeAtual() && v <= 80); } },
@@ -86,8 +86,8 @@ screen('apos3', {
       body: a.fontes.length ? `<p class="b14" style="color:var(--bh-muted)">Receitas extras que você espera receber no momento da aposentadoria diminuem o valor necessário para alcançar o seu objetivo.</p><p class="b16 bold" style="color:var(--bh-ink)">Rendas cadastradas</p>
         ${a.fontes.map((f, k) => `<button type="button" class="bh-card row g3" data-act="fEd" data-k="${k}" style="flex-direction:row;align-items:center"><span class="bh-ic">${ic('house', 18)}</span><span class="f1 col"><span class="b16 semi" style="color:var(--bh-ink)">${esc(f.nome)}</span><span class="b14" style="color:var(--bh-muted)">${fmtR(f.valor)} por mês</span></span>${ic('pencil', 16)}</button>`).join('')}
         ${btn(ic('plus', 14) + ' Adicionar outra fonte', { v: 'o', cls: 'btn-xs auto', act: 'fAdd', attrs: 'style="align-self:flex-start;padding:0 14px;color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}`
-        : `<div class="col g3 center" style="align-items:center;padding:20px 0"><span class="bh-ic" style="width:52px;height:52px">${ic('hand-coins', 24)}</span><p class="b16 bold" style="color:var(--bh-ink)">Espera receber alguma renda complementar na aposentadoria?</p><p class="b14" style="color:var(--bh-muted)">Considere aluguéis, pensão, INSS, dentre outros</p>${btn(ic('plus', 16) + ' Adicionar fonte de renda', { v: 'o', act: 'fAdd', cls: 'auto', attrs: 'style="padding:0 18px;color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>`,
-      foot: btn(a.fontes.length ? 'Próximo' : 'Pular', { cls: 'lg', go: 'apos4', attrs: 'style="background:var(--bh-blue)"' }) }); },
+        : `<div class="col g3 center" style="align-items:center;padding:20px 0"><p class="b16 bold" style="color:var(--bh-ink)">Espera receber alguma renda complementar na aposentadoria?</p><p class="b14" style="color:var(--bh-muted)">Considere aluguéis, pensão, INSS, dentre outros</p>${btn(ic('plus', 16) + ' Adicionar fonte de renda', { v: 'o', act: 'fAdd', cls: 'auto', attrs: 'style="padding:0 18px;color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>`,
+      foot: btn('Próximo', { cls: 'lg', go: 'apos4', attrs: 'style="background:var(--bh-blue)"' }) }); },
   acts: {
     fAdd: () => fonteSheet(),
     fEd: (b) => fonteSheet(+b.dataset.k),
@@ -108,9 +108,9 @@ Object.assign(GLOBAL_ACTS, {
 screen('apos4', {
   cls: 'bh',
   render: () => apScreen({ title: 'Patrimônio inicial', dots: 3, sub: 'Informe o que você já acumulou e veja a evolução do seu patrimônio ao longo do tempo',
-    body: `${field({ id: 'ap', label: 'Você já possui investimentos?', ph: 'R$ 0,00', bind: 'apos.patTxt', mask: 'brl', helper: 'Informe os valores aplicados em bancos, corretoras ou outras instituições financeiras. Não inclua casa, carro ou terrenos.' })}
-      ${field({ id: 'aa', label: 'Quanto consegue investir por mês?', ph: 'R$ 0,00', bind: 'apos.aporteTxt', mask: 'brl', helper: 'Usamos esse valor como ponto de partida. Na simulação mostramos se ele é suficiente.' })}
-      <p class="cap" style="color:var(--bh-muted)">Caso não tenha investimentos, basta seguir para o próximo passo.</p>`,
+    /* o campo de aporte mensal saiu conforme o Figma 11.04 (14014:31024) */
+    body: `${field({ id: 'ap', label: 'Você já possui investimentos?', ph: 'R$ 0,00', bind: 'apos.patTxt', mask: 'brl', helper: 'Informe os valores aplicados em bancos, corretoras ou outras instituições financeiras. <b>Não inclua casa, carro ou terrenos.</b>' })}
+      <p class="cap" style="color:var(--bh-muted);margin-top:auto">Caso não tenha investimentos, basta seguir para o próximo passo.</p>`,
     foot: btn('Próximo', { cls: 'lg', go: 'apos5', attrs: 'style="background:var(--bh-blue)"' }) }),
 });
 screen('apos5', {
@@ -119,7 +119,8 @@ screen('apos5', {
     return apScreen({ title: 'Projetos futuros', dots: 4, sub: 'Eventos previstos que impactarão sua curva de acúmulo de patrimônio.',
       body: a.projetos.length ? `<p class="b16 bold" style="color:var(--bh-ink)">Seus projetos cadastrados</p>${a.projetos.map((p, k) => `<div class="bh-card row g3" style="flex-direction:row;align-items:center"><span class="bh-ic" style="${p.valor > 0 ? 'background:var(--success-bg);color:var(--success)' : ''}">${ic(p.valor > 0 ? 'arrow-down-to-line' : { Viagem: 'plane', Veículo: 'car', Casa: 'house', Educação: 'graduation-cap', Saúde: 'heart-pulse' }[p.cat] || 'target', 18)}</span><div class="f1"><p class="b16 semi" style="color:var(--bh-ink)">${esc(p.nome)}</p><p class="b14" style="color:var(--bh-muted)">${p.data}</p></div><p class="b14 bold" style="color:${p.valor > 0 ? 'var(--success)' : 'var(--danger)'}">${p.valor > 0 ? '+' : '-'}${fmtR(Math.abs(p.valor))}</p><button type="button" data-act="pDel" data-k="${k}" aria-label="Remover" style="color:var(--bh-muted)">${ic('x', 16)}</button></div>`).join('')}
         ${btn(ic('plus', 14) + ' Adicionar projeto', { v: 'o', cls: 'btn-xs auto', act: 'pAdd', attrs: 'style="align-self:flex-start;padding:0 14px;color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}`
-        : `<div class="col g3 center" style="align-items:center;padding:20px 0"><span class="bh-ic" style="width:52px;height:52px">${ic('target', 24)}</span><p class="b16 bold" style="color:var(--bh-ink)">Nenhum projeto cadastrado</p><p class="b14" style="color:var(--bh-muted)">Sua simulação considera o cenário base de acúmulo e aposentadoria. Inclua eventos planejados, como aquisição de ativos, viagens ou aportes pontuais para visualizar o impacto na sua curva de patrimônio.</p>${btn(ic('plus', 16) + ' Adicionar projeto', { v: 'o', act: 'pAdd', cls: 'auto', attrs: 'style="padding:0 18px;color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>`,
+        /* estado vazio em card cinza, alinhado à esquerda e sem ícone (Figma 11.05 · 14014:31150) */
+        : `<div class="col g3" style="background:var(--bg-lighter);border-radius:var(--r-xl);padding:20px"><p class="b16 bold" style="color:var(--bh-ink)">Nenhum projeto cadastrado</p><p class="b14" style="color:var(--bh-muted)">Sua simulação considera o cenário base de acúmulo e aposentadoria. Inclua eventos planejados, como aquisição de ativos, viagens ou aportes pontuais para visualizar o impacto na sua curva de patrimônio.</p>${btn(ic('plus', 16) + ' Adicionar projeto', { v: 'o', act: 'pAdd', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>`,
       foot: btn('Gerar minha projeção', { cls: 'lg', act: 'gerar', attrs: 'style="background:var(--bh-blue)"' }) }); },
   acts: {
     pAdd: () => projetoSheet(),
