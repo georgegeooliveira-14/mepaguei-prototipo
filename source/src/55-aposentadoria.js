@@ -115,8 +115,10 @@ Object.assign(GLOBAL_ACTS, {
 screen('apos4', {
   cls: 'bh',
   render: () => apScreen({ title: 'Patrimônio inicial', dots: 3, sub: 'Informe o que você já acumulou e veja a evolução do seu patrimônio ao longo do tempo',
-    /* o campo de aporte mensal saiu conforme o Figma 11.04 (14014:31024) */
+    /* o aporte mensal não existe na 11.04 do Figma, mas sem ele a simulação parte de zero
+       e nenhum cenário fecha percorrendo o fluxo — por isso segue aqui */
     body: `${field({ id: 'ap', label: 'Você já possui investimentos?', ph: 'R$ 0,00', bind: 'apos.patTxt', mask: 'brl', helper: 'Informe os valores aplicados em bancos, corretoras ou outras instituições financeiras. <b>Não inclua casa, carro ou terrenos.</b>' })}
+      ${field({ id: 'aa', label: 'Quanto consegue investir por mês?', ph: 'R$ 0,00', bind: 'apos.aporteTxt', mask: 'brl', helper: 'Usamos esse valor como ponto de partida. Na simulação mostramos se ele é suficiente.' })}
       <p class="cap" style="color:var(--bh-muted);margin-top:auto">Caso não tenha investimentos, basta gerar sua projeção.</p>`,
     foot: btn('Gerar minha projeção', { cls: 'lg', act: 'gerar', attrs: 'style="background:var(--bh-blue)"' }) }),
   acts: { gerar: () => go('bhProc', { msg: 'Analisando suas informações...', next: 'aposRes' }) },
