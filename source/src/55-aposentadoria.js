@@ -41,7 +41,12 @@ function apCalc(over = {}) {
   const rendaPossivel = comp + proj * IM / (1 - Math.pow(1 + IM, -nRet));
   let idadeOk = null; for (let x = idade; x <= 75; x++) { const r = apCalcLite(x, renda, aporte); if (r) { idadeOk = x; break; } }
   const invAt = serie.find(s => s.age === idade)?.inv ?? 0;
-  return { ia, idade, renda, aporte, comp, P0, saque, needAt, proj, serie, ideal, acaba, aporteNec, rendaPossivel, idadeOk, invAt, retorno: Math.max(0, proj - invAt), fecha: proj >= needAt * 0.995, ano: yearNow + (idade - ia) };
+  /* composição do plano que funciona (usada quando não há aporte informado):
+     quanto sairia do bolso com o aporte necessário e quanto viria de rendimento */
+  const idealInv = P0 + aporteNec * nAcc;
+  /* até que idade a renda dura com um aporte qualquer — serve para a sensibilidade */
+  const duraCom = (ap) => sim(ap).find(s => s.age > idade && s.pat <= 0)?.age ?? VIDA;
+  return { ia, idade, renda, aporte, comp, P0, saque, needAt, proj, serie, ideal, acaba, aporteNec, rendaPossivel, idadeOk, invAt, retorno: Math.max(0, proj - invAt), idealInv, idealRet: Math.max(0, needAt - idealInv), duraCom, fecha: proj >= needAt * 0.995, ano: yearNow + (idade - ia) };
 }
 function apCalcLite(idade, renda, aporte) {
   const a = apState(); const ia = idadeAtual(); const comp = a.fontes.reduce((s, f) => s + f.valor, 0); const saque = Math.max(0, renda - comp);
@@ -160,15 +165,18 @@ function apChart(r, vista) {
   /* na fase de uso o investido não pode passar do que ainda resta: a faixa azul cai junto com a verde */
   const vPat = s => s.pat, vInv = s => Math.min(s.inv, s.pat);
   const gx = X(r.idade).toFixed(1);
-  const pI = r.ideal.find(s => s.age === r.idade), pP = r.serie.find(s => s.age === r.idade);
+  /* sem aporte informado não existe "sua projeção": o que o gráfico mostra é o plano
+     que funciona, com a composição entre o que sai do bolso e o rendimento */
+  const S0 = SEM_APORTE ? r.ideal : r.serie;
+  const pI = r.ideal.find(s => s.age === r.idade), pP = S0.find(s => s.age === r.idade);
   const lab = vista === 'ate' ? `acúmulo dos ${a0} aos ${a1} anos` : vista === 'depois' ? `uso dos ${a0} aos ${a1} anos` : `plano dos ${a0} aos ${a1} anos`;
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="Patrimônio por idade — ${lab}">
     ${[0, 1, 2, 3].map(i => { const y = (YT + i * (YB - YT) / 3).toFixed(1); return `<line x1="${X0}" x2="${X1}" y1="${y}" y2="${y}" stroke="#e2e5ec" stroke-dasharray="2 3"/>`; }).join('')}
     <line x1="${gx}" x2="${gx}" y1="${YT}" y2="${YB}" stroke="#c7cdd9" stroke-dasharray="2 3"/>
-    <path d="${area(r.serie, vPat)}" fill="${AP_COR.patF}"/>
-    <path d="${area(r.serie, vInv)}" fill="${AP_COR.invF}"/>
-    <path d="${line(r.serie, vPat)}" fill="none" stroke="${AP_COR.patL}" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="${line(r.serie, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="${area(S0, vPat)}" fill="${AP_COR.patF}"/>
+    <path d="${area(S0, vInv)}" fill="${AP_COR.invF}"/>
+    <path d="${line(S0, vPat)}" fill="none" stroke="${AP_COR.patL}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="${line(S0, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>
     <path d="${line(r.ideal, vPat)}" fill="none" stroke="${AP_COR.meta}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     ${pI ? `<circle cx="${gx}" cy="${Y(pI.pat).toFixed(1)}" r="4.5" fill="${AP_COR.meta}" stroke="#fff" stroke-width="2"/>` : ''}
     ${pP ? `<circle cx="${gx}" cy="${Y(pP.pat).toFixed(1)}" r="4.5" fill="${AP_COR.patL}" stroke="#fff" stroke-width="2"/>` : ''}
@@ -185,8 +193,15 @@ function apChips(r, vista) {
 function apManchete(r, vista) {
   const pct = r.needAt ? Math.min(100, Math.round(r.proj / r.needAt * 100)) : 100;
   const pRend = r.proj ? Math.round(r.retorno / r.proj * 100) : 0;
-  const m = vista === 'ate' ? [`VOCÊ ACUMULA ATÉ OS ${r.idade}`, fmtR(r.proj), `${pRend}% vêm do rendimento, não do seu bolso.`]
-    : vista === 'depois' ? ['SUA RENDA DURA ATÉ', `${r.acaba || VIDA} anos`, r.acaba ? `${VIDA - r.acaba} anos a menos que os ${VIDA} do plano.` : `Sua renda dura todo o plano, até os ${VIDA}.`]
+  /* sem aporte informado as abas falam do plano que funciona, não de uma projeção
+     que a pessoa nunca declarou (antes elas zeravam) */
+  const pRendI = r.needAt ? Math.round(r.idealRet / r.needAt * 100) : 0;
+  const m = vista === 'ate' ? (SEM_APORTE
+    ? [`VOCÊ ACUMULA ATÉ OS ${r.idade}`, fmtR(r.needAt), `${pRendI}% vêm do rendimento, não do seu bolso.`]
+    : [`VOCÊ ACUMULA ATÉ OS ${r.idade}`, fmtR(r.proj), `${pRend}% vêm do rendimento, não do seu bolso.`])
+    : vista === 'depois' ? (SEM_APORTE
+      ? ['SUA RENDA DURA ATÉ', `${VIDA} anos`, `Com o aporte necessário, a renda cobre todo o plano. Investindo menos, ela acaba antes:`]
+      : ['SUA RENDA DURA ATÉ', `${r.acaba || VIDA} anos`, r.acaba ? `${VIDA - r.acaba} anos a menos que os ${VIDA} do plano.` : `Sua renda dura todo o plano, até os ${VIDA}.`])
       /* sem aporte informado o resultado da simulação é o próprio aporte necessário,
          em vez de quanto da meta a pessoa alcança (modelo do cliente) */
       : SEM_APORTE ? ['APORTE NECESSÁRIO', `${fmtR(r.aporteNec)}/mês`, `Para alcançar ${fmtR(r.renda)}/mês a partir dos ${r.idade} anos.`]
@@ -205,9 +220,16 @@ function apLegenda(r, vista) {
        <span class="row g2" style="align-items:center;min-width:0">${sw}<span style="font-size:13px;line-height:18px;color:#363d4a${semi ? ';font-weight:600' : ''}">${lab}</span></span>
        <span style="font-size:14px;font-weight:600;line-height:20px;color:${cor};white-space:nowrap;flex:none">${val}</span></div>`;
   const pInv = r.proj ? Math.round(r.invAt / r.proj * 100) : 0;
-  const body = vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.invAt)} · ${pInv}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.retorno)} · ${100 - pInv}%`)
-    : vista === 'depois' ? row('', 'Renda mensal', `${fmtR(r.rendaPossivel)}/mês`) + row(swL, 'Com o aporte ideal, duraria até', `${VIDA} anos`, { semi: true, cor: AP_COR.meta })
-      : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
+  /* no modelo sem aporte a legenda descreve a composição do plano que funciona */
+  const pInvI = r.needAt ? Math.round(r.idealInv / r.needAt * 100) : 0;
+  const sens = f => row('', `Investindo ${fmtR(r.aporteNec * f)}/mês (${Math.round(f * 100)}%)`, `até os ${r.duraCom(r.aporteNec * f)} anos`);
+  const body = SEM_APORTE
+    ? (vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.idealInv)} · ${pInvI}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.idealRet)} · ${100 - pInvI}%`)
+      : vista === 'depois' ? sens(0.5) + sens(0.75) + row(swL, `Investindo ${fmtR(r.aporteNec)}/mês (100%)`, `até os ${VIDA} anos`, { semi: true, cor: AP_COR.meta })
+        : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.idealInv)) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', fmtR(r.idealRet)))
+    : vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.invAt)} · ${pInv}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.retorno)} · ${100 - pInv}%`)
+      : vista === 'depois' ? row('', 'Renda mensal', `${fmtR(r.rendaPossivel)}/mês`) + row(swL, 'Com o aporte ideal, duraria até', `${VIDA} anos`, { semi: true, cor: AP_COR.meta })
+        : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
   /* 4px acima do detalhamento (Figma 20810:2170) */
   return `<div class="col" style="padding-top:4px">${body}</div>`;
 }
@@ -215,7 +237,10 @@ screen('aposRes', {
   cls: 'bh',
   render: (p) => { const r = apCalc(); const gap = r.needAt - r.proj; const vista = p.vista || 'geral';
     const alt = (t, act) => `<button type="button" class="row g3 ais" data-act="${act}" style="text-align:left;padding:8px 0"><span style="color:${r.fecha ? 'var(--success)' : 'var(--warning)'}">${ic('circle-arrow-right', 20)}</span><span class="b14 semi" style="color:var(--bh-ink)">${t}</span></button>`;
-    const status = r.fecha ? `<div class="card col g2" style="background:var(--success-bg);border-color:#bfe5cc"><p class="h4" style="color:var(--bh-ink)">Encontramos um caminho!</p><p class="b14" style="color:var(--bh-ink)">Ao investir <b>${fmtR(r.aporte)}</b> por mês você alcança a renda desejada a partir da idade alvo.${r.aporteNec < r.aporte * 0.98 ? ` Na verdade, ${fmtR(r.aporteNec)} por mês já seriam suficientes.` : ''}</p><p class="b14" style="color:var(--bh-ink)">Agora você pode conhecer a SuperPrevidência, uma curadoria de soluções para colocar seu plano em prática:</p>${btn('Ir para SuperPrevidência', { act: 'superp', attrs: 'style="background:var(--success)"' })}</div>`
+    /* sem aporte informado sempre há um caminho — ele é o próprio resultado da simulação.
+       O card de ajuste não cabe aqui: falaria de "manter aportes de R$ 0,00/mês". */
+    const temCaminho = r.fecha || SEM_APORTE;
+    const status = temCaminho ? `<div class="card col g2" style="background:var(--success-bg);border-color:#bfe5cc"><p class="h4" style="color:var(--bh-ink)">Encontramos um caminho!</p><p class="b14" style="color:var(--bh-ink)">Ao investir <b>${fmtR(SEM_APORTE ? r.aporteNec : r.aporte)}</b> por mês você alcança a renda desejada a partir da idade alvo.${!SEM_APORTE && r.aporteNec < r.aporte * 0.98 ? ` Na verdade, ${fmtR(r.aporteNec)} por mês já seriam suficientes.` : ''}</p><p class="b14" style="color:var(--bh-ink)">Agora você pode conhecer a SuperPrevidência, uma curadoria de soluções para colocar seu plano em prática:</p>${btn('Ir para SuperPrevidência', { act: 'superp', attrs: 'style="background:var(--success)"' })}</div>`
       : `<div class="card col g2" style="border-color:${r.acaba && r.acaba >= r.idade + 8 ? '#f6c59f' : '#f2b4b4'}"><div class="row jb"><p class="h4" style="color:var(--bh-ink)">Ajuste necessário</p>${r.acaba && r.acaba >= r.idade + 8 ? '<span class="badge warning">Atenção</span>' : ''}</div>
           <p class="b14" style="color:var(--bh-muted)">${r.acaba && r.acaba >= r.idade + 8 ? `Com as premissas atuais, há recursos para a aposentadoria, mas a reserva financeira se esgota aos <b>${r.acaba} anos</b>.` : `Mantendo aportes de <b>${fmtBRL(r.aporte)}/mês</b>, há uma diferença de <b>${fmtM(gap)}</b> para atingir o valor ideal aos <b>${r.idade} anos</b>.`}</p>
           <p class="b16 bold" style="color:var(--bh-ink);margin-top:6px">Veja como resolver</p><p class="b14" style="color:var(--bh-muted)">Toque em uma alternativa para simular com ela na hora.</p>
@@ -238,7 +263,7 @@ screen('aposRes', {
         <div class="bh-card"><button type="button" class="row g3" data-act="tgInfo" aria-expanded="${!!p.info}"><span class="bh-ic">${ic('user', 18)}</span><span class="f1 b16 semi" style="color:var(--bh-ink);text-align:left">Informações consideradas para este cálculo</span>${ic(p.info ? 'chevron-up' : 'chevron-down', 18)}</button>
           ${p.info ? `<div class="col g3" style="background:var(--bg-lighter);border-radius:8px;padding:16px">${[['Idade de aposentadoria', r.idade + ' anos'], ['Renda desejada', fmtR(r.renda) + '/mês'], ['Outras fontes de renda', fmtR(r.comp) + '/mês'], ['Investimento atual', fmtR(r.P0)]].map(([a, v]) => `<div class="row jb"><span class="b14" style="color:#737373">${a}</span><span class="b14 semi" style="color:#404040">${v}</span></div>`).join('')}</div>` : ''}</div>
         <p class="cap center" style="color:#6e7789">As simulações são estimativas e não representam garantia de rentabilidade.</p>`,
-      foot: r.fecha ? btn('Ir para SuperPrevidência', { cls: 'lg', act: 'superp', attrs: 'style="background:var(--bh-blue)"' }) + btn('Editar e simular novamente', { v: 'o', act: 'edit', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })
+      foot: temCaminho ? btn('Ir para SuperPrevidência', { cls: 'lg', act: 'superp', attrs: 'style="background:var(--bh-blue)"' }) + btn('Editar e simular novamente', { v: 'o', act: 'edit', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })
         : btn('Ajustar e simular novamente', { cls: 'lg', act: 'edit', attrs: 'style="background:var(--bh-blue)"' }) + btn('Salvar assim mesmo', { v: 'o', act: 'save', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' }) }); },
   acts: {
     tgInfo: () => { const p = stack[stack.length - 1].p; p.info = !p.info; rerender(); },
