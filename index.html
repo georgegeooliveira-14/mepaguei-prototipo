@@ -4181,7 +4181,8 @@ function apLegenda(r, vista) {
   const body = vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.invAt)} · ${pInv}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.retorno)} · ${100 - pInv}%`)
     : vista === 'depois' ? row('', 'Renda mensal', `${fmtR(r.rendaPossivel)}/mês`) + row(swL, 'Com o aporte ideal, duraria até', `${VIDA} anos`, { semi: true, cor: AP_COR.meta })
       : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
-  return `<div class="col" style="padding-top:16px">${body}</div>`;
+  /* 4px acima do detalhamento (Figma 20810:2170) */
+  return `<div class="col" style="padding-top:4px">${body}</div>`;
 }
 screen('aposRes', {
   cls: 'bh',
@@ -4196,11 +4197,14 @@ screen('aposRes', {
           ${r.idadeOk ? alt(`Aposentar aos ${r.idadeOk} anos`, 'altI') : ''}
           ${alt('Combinar alternativas (aplique mudanças no aporte, renda desejada ou idade de aposentadoria, ao mesmo tempo)', 'edit')}</div>`;
     return apScreen({ title: 'Aposentadoria Inteligente', sub: 'Veja como seu patrimônio pode evoluir ao longo da vida e durante a aposentadoria', subRola: true,
-      body: `<div class="bh-card"><p class="h3" style="color:var(--bh-ink)">Seu dinheiro no tempo</p><p class="b14" style="color:#6e7789">Quanto você acumula, quanto rende e até quando dura.</p>
-          <div style="padding-top:16px">${apChips(r, vista)}</div>${apManchete(r, vista)}
+      /* paddings conforme o card 20810:181252: 24/12/20 com raio 20, sem gap entre blocos
+         (cada bloco traz o próprio respiro); o título fica 8px mais para dentro que o gráfico */
+      body: `<div class="bh-card" style="padding:24px 12px 20px;border-radius:20px;gap:0">
+          <div style="padding:0 8px 24px"><p class="h3" style="color:var(--bh-ink)">Seu dinheiro no tempo</p><p class="b14" style="color:#6e7789;padding-top:4px">Quanto você acumula, quanto rende e até quando dura.</p></div>
+          ${apChips(r, vista)}${apManchete(r, vista)}
           <div style="padding-top:16px">${apChart(r, vista)}</div>${apLegenda(r, vista)}
-          <div style="height:1px;background:#f1f5f9;margin-top:16px"></div>
-          <div class="row jb" style="align-items:center;margin-top:16px;border:1px solid #e2e5ec;border-radius:12px;padding:16px"><span class="b14 semi" style="color:var(--bh-ink)">Aporte necessário</span><span class="h3" style="color:var(--bh-ink)">${fmtR(r.aporteNec)}/mês</span></div>
+          <div style="padding-top:16px"><div style="height:1px;background:#f1f5f9"></div></div>
+          <div style="padding-top:16px"><div class="row jb" style="align-items:center;border:1px solid #e2e5ec;border-radius:12px;padding:16px"><span class="b14 semi" style="color:var(--bh-ink)">Aporte necessário</span><span class="h3" style="color:var(--bh-ink)">${fmtR(r.aporteNec)}/mês</span></div></div>
           <p style="padding-top:16px;font-size:11px;line-height:17px;color:#6e7789">Simulação considerando rentabilidade líquida de 5% ao ano acima da inflação (IPCA)</p></div>
         ${status}
         <div class="bh-card"><button type="button" class="row g3" data-act="tgInfo" aria-expanded="${!!p.info}"><span class="bh-ic">${ic('user', 18)}</span><span class="f1 b16 semi" style="color:var(--bh-ink);text-align:left">Informações consideradas para este cálculo</span>${ic(p.info ? 'chevron-up' : 'chevron-down', 18)}</button>
