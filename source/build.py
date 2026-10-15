@@ -1,12 +1,14 @@
 import re,glob,os,json,shutil,sys
 root=os.path.dirname(os.path.abspath(__file__))
 PUB='pub' in sys.argv
-OUT=f'{root}/dist-pub' if PUB else f'{root}/dist'
+# variante do teste de usabilidade: mesma base, sem o campo de aporte mensal na aposentadoria
+SEM='semaporte' in sys.argv
+OUT=f'{root}/dist'+('-pub' if PUB else '')+('-sem' if SEM else '')
 order=['base.css']
 css=''.join(open(f'{root}/src/{f}').read() for f in sorted(os.listdir(root+'/src')) if f.endswith('.css'))
 jsfiles=['core.js']+sorted(f for f in os.listdir(root+'/src') if f.endswith('.js') and f!='core.js' and f!='boot.js')+['boot.js']
 js='\n'.join(f'// ---- {f}\n'+open(f'{root}/src/{f}').read() for f in jsfiles if os.path.exists(f'{root}/src/{f}'))
-js=f'window.PROTO_PUB={"true" if PUB else "false"};\n'+js
+js=f'window.PROTO_PUB={"true" if PUB else "false"};window.PROTO_SEM_APORTE={"true" if SEM else "false"};\n'+js
 names=set(re.findall(r"ic\(\s*['\"]([a-z0-9-]+)['\"]",js))|set(re.findall(r"icon\s*:\s*['\"]([a-z0-9-]+)['\"]",js))|set(re.findall(r"data-ic=['\"]([a-z0-9-]+)['\"]",js))
 names|=set(re.findall(r"/\*ic\*/['\"]([a-z0-9-]+)['\"]",js))
 import os as _o

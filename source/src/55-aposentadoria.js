@@ -1,6 +1,10 @@
 /* ============ 11 · Aposentadoria inteligente (dentro do BlueHub) ============ */
 
 const RENT = 0.05, IM = Math.pow(1 + RENT, 1 / 12) - 1, VIDA = 90;
+/* Variante do teste: ?sem-aporte esconde o campo de aporte mensal. É o modelo descrito
+   pelo cliente — a pessoa não informa quanto investe, e o resultado da simulação é
+   justamente o aporte necessário. Mesma build serve as duas versões. */
+const SEM_APORTE = /[?&]sem-aporte(\b|=)/.test(location.search);
 const fmtM = v => { const a = Math.abs(v); const s = a >= 1e6 ? 'R$ ' + (a / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' M' : 'R$ ' + Math.round(a).toLocaleString('pt-BR'); return (v < 0 ? '−' : '') + s; };
 function idadeAtual() { const d = parseData(S.user.nasc); if (!d) return 30; const t = hoje(); let a = t.getFullYear() - d.getFullYear(); if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--; return a; }
 function apState() { return S.apos ??= { idadeTxt: '', rendaTxt: '', fontes: [], patTxt: '', aporteTxt: '' }; }
@@ -118,7 +122,7 @@ screen('apos4', {
     /* o aporte mensal não existe na 11.04 do Figma, mas sem ele a simulação parte de zero
        e nenhum cenário fecha percorrendo o fluxo — por isso segue aqui */
     body: `${field({ id: 'ap', label: 'Você já possui investimentos?', ph: 'R$ 0,00', bind: 'apos.patTxt', mask: 'brl', helper: 'Informe os valores aplicados em bancos, corretoras ou outras instituições financeiras. <b>Não inclua casa, carro ou terrenos.</b>' })}
-      ${field({ id: 'aa', label: 'Quanto consegue investir por mês?', ph: 'R$ 0,00', bind: 'apos.aporteTxt', mask: 'brl', helper: 'Usamos esse valor como ponto de partida. Na simulação mostramos se ele é suficiente.' })}
+      ${SEM_APORTE ? '' : field({ id: 'aa', label: 'Quanto consegue investir por mês?', ph: 'R$ 0,00', bind: 'apos.aporteTxt', mask: 'brl', helper: 'Usamos esse valor como ponto de partida. Na simulação mostramos se ele é suficiente.' })}
       <p class="cap" style="color:var(--bh-muted);margin-top:auto">Caso não tenha investimentos, basta gerar sua projeção.</p>`,
     foot: btn('Gerar minha projeção', { cls: 'lg', act: 'gerar', attrs: 'style="background:var(--bh-blue)"' }) }),
   acts: { gerar: () => go('bhProc', { msg: 'Analisando suas informações...', next: 'aposRes' }) },
@@ -239,4 +243,4 @@ screen('aposRes', {
 });
 flowEntry('BlueHub', 'Aposentadoria inteligente', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; S.apos = null; reset('bhHome'); go('apos1'); });
 flowEntry('BlueHub', 'Aposentadoria · resultado de exemplo', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; /* premissas do exemplo iguais às da tela 11.13 do Figma (idade 65 · renda 14.300 · outras fontes 2.000 · investimento atual 88.000) */
-S.apos = { idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }], patTxt: 'R$ 88.000,00', aporteTxt: 'R$ 1.000,00' }; reset('bhHome'); go('apos2'); go('aposRes'); });
+S.apos = { idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }], patTxt: 'R$ 88.000,00', aporteTxt: SEM_APORTE ? '' : 'R$ 1.000,00' }; reset('bhHome'); go('apos2'); go('aposRes'); });
