@@ -6,8 +6,11 @@ const RENT = 0.05, IM = Math.pow(1 + RENT, 1 / 12) - 1, VIDA = 90;
    justamente o aporte necessário. Mesma build serve as duas versões. */
 const SEM_APORTE = /[?&]sem-aporte(\b|=)/.test(location.search);
 const fmtM = v => { const a = Math.abs(v); const s = a >= 1e6 ? 'R$ ' + (a / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' M' : 'R$ ' + Math.round(a).toLocaleString('pt-BR'); return (v < 0 ? '−' : '') + s; };
-function idadeAtual() { const d = parseData(S.user.nasc); if (!d) return 30; const t = hoje(); let a = t.getFullYear() - d.getFullYear(); if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--; return a; }
-function apState() { return S.apos ??= { idadeTxt: '', rendaTxt: '', fontes: [], patTxt: '', aporteTxt: '' }; }
+/* idade derivada da data de nascimento do cadastro, quando houver */
+function idadeDaData() { const d = parseData(S.user.nasc); if (!d) return null; const t = hoje(); let a = t.getFullYear() - d.getFullYear(); if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--; return a; }
+/* a idade informada na tela manda; a data de nascimento é só o valor inicial do campo */
+function idadeAtual() { const v = +(S.apos || {}).iaTxt; if (v >= 18 && v <= 90) return v; return idadeDaData() ?? 30; }
+function apState() { return S.apos ??= { iaTxt: idadeDaData() != null ? String(idadeDaData()) : '', idadeTxt: '', rendaTxt: '', fontes: [], patTxt: '', aporteTxt: '' }; }
 
 /* ---------- cálculo ---------- */
 function apCalc(over = {}) {
@@ -80,15 +83,18 @@ screen('apos1', {
 });
 screen('apos2', {
   cls: 'bh',
-  render: () => { const ia = idadeAtual(); return apScreen({ title: 'Meta de aposentadoria', dots: 1, sub: 'Defina quando você pretende se aposentar e a renda mensal necessária para manter seu estilo de vida',
-    body: `<p class="b14" style="background:var(--bg-lighter);border-radius:var(--r-xl);padding:10px 14px;color:var(--bh-muted)">Idade atual: <b style="color:var(--bh-ink)">${ia} anos</b></p>
-      ${field({ id: 'ai', label: 'Idade de aposentadoria', ph: 'Ex: 65', bind: 'apos.idadeTxt', mask: 'int' })}<p class="fld-h err" id="aerr" hidden>Escolha uma idade entre ${ia + 1} e 80 anos.</p>
+  /* apState() antes de montar o corpo: é ele que preenche a idade a partir do cadastro,
+     e o campo precisa desse valor já no primeiro render */
+  render: () => { apState(); return apScreen({ title: 'Meta de aposentadoria', dots: 1, sub: 'Defina quando você pretende se aposentar e a renda mensal necessária para manter seu estilo de vida',
+    /* a idade atual é editável: antes vinha só da data de nascimento do cadastro, e quem
+       entrasse direto neste fluxo era simulado como se tivesse 30 anos */
+    body: `${field({ id: 'ac', label: 'Sua idade atual', ph: 'Ex: 40', bind: 'apos.iaTxt', mask: 'int', helper: 'Usamos esse valor como ponto de partida da projeção.' })}
+      ${field({ id: 'ai', label: 'Idade de aposentadoria', ph: 'Ex: 65', bind: 'apos.idadeTxt', mask: 'int' })}<p class="fld-h err" id="aerr" hidden>A idade de aposentadoria precisa ser maior que a sua idade atual e no máximo 80 anos.</p>
       ${field({ id: 'ar', label: 'Renda mensal desejada', ph: 'R$ 0,00', bind: 'apos.rendaTxt', mask: 'brl', helper: 'Considere o poder de compra de hoje' })}
       ${dica('Ajustar o prazo da aposentadoria pode reduzir o esforço mensal necessário para construir seu futuro')}`,
     foot: btn('Próximo', { cls: 'lg', next: true, go: 'apos3', attrs: 'style="background:var(--bh-blue)"' }) }); },
-  mount: () => { apState(); },
-  onInput: (i, el) => { if (i.id === 'ai') { const v = +i.value; $('#aerr', el).hidden = !i.value || i.value.length < 2 || (v > idadeAtual() && v <= 80); } },
-  valid: () => { const a = apState(); const v = +a.idadeTxt; return v > idadeAtual() && v <= 80 && parseBRL(a.rendaTxt) > 0; },
+  onInput: (i, el) => { if (i.id === 'ai' || i.id === 'ac') { const v = +($('#ai', el)?.value || 0); const ai = $('#ai', el)?.value || ''; $('#aerr', el).hidden = !ai || ai.length < 2 || (v > idadeAtual() && v <= 80); } },
+  valid: () => { const a = apState(); const ia = +a.iaTxt, v = +a.idadeTxt; return ia >= 18 && ia <= 90 && v > ia && v <= 80 && parseBRL(a.rendaTxt) > 0; },
 });
 screen('apos3', {
   cls: 'bh',
@@ -247,4 +253,4 @@ screen('aposRes', {
 });
 flowEntry('BlueHub', 'Aposentadoria inteligente', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; S.apos = null; reset('bhHome'); go('apos1'); });
 flowEntry('BlueHub', 'Aposentadoria · resultado de exemplo', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; /* premissas do exemplo iguais às da tela 11.13 do Figma (idade 65 · renda 14.300 · outras fontes 2.000 · investimento atual 88.000) */
-S.apos = { idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }], patTxt: 'R$ 88.000,00', aporteTxt: SEM_APORTE ? '' : 'R$ 1.000,00' }; reset('bhHome'); go('apos2'); go('aposRes'); });
+S.apos = { iaTxt: '40', idadeTxt: '65', rendaTxt: 'R$ 14.300,00', fontes: [{ nome: 'Aluguel de imóvel', valor: 2000 }], patTxt: 'R$ 88.000,00', aporteTxt: SEM_APORTE ? '' : 'R$ 1.000,00' }; reset('bhHome'); go('apos2'); go('aposRes'); });
