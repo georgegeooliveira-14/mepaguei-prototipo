@@ -173,13 +173,14 @@ function apChart(r, vista) {
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="Patrimônio por idade — ${lab}">
     ${[0, 1, 2, 3].map(i => { const y = (YT + i * (YB - YT) / 3).toFixed(1); return `<line x1="${X0}" x2="${X1}" y1="${y}" y2="${y}" stroke="#e2e5ec" stroke-dasharray="2 3"/>`; }).join('')}
     <line x1="${gx}" x2="${gx}" y1="${YT}" y2="${YB}" stroke="#c7cdd9" stroke-dasharray="2 3"/>
+    ${SEM_APORTE ? '' /* nada foi declarado: só a meta é desenhada */ : `
     <path d="${area(S0, vPat)}" fill="${AP_COR.patF}"/>
     <path d="${area(S0, vInv)}" fill="${AP_COR.invF}"/>
     <path d="${line(S0, vPat)}" fill="none" stroke="${AP_COR.patL}" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="${line(S0, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="${line(S0, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>`}
     <path d="${line(r.ideal, vPat)}" fill="none" stroke="${AP_COR.meta}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     ${pI ? `<circle cx="${gx}" cy="${Y(pI.pat).toFixed(1)}" r="4.5" fill="${AP_COR.meta}" stroke="#fff" stroke-width="2"/>` : ''}
-    ${pP ? `<circle cx="${gx}" cy="${Y(pP.pat).toFixed(1)}" r="4.5" fill="${AP_COR.patL}" stroke="#fff" stroke-width="2"/>` : ''}
+    ${!SEM_APORTE && pP ? `<circle cx="${gx}" cy="${Y(pP.pat).toFixed(1)}" r="4.5" fill="${AP_COR.patL}" stroke="#fff" stroke-width="2"/>` : ''}
     ${apTicks(r, vista, a0, a1).map(t => `<text x="${X(t).toFixed(1)}" y="${YB + 19}" text-anchor="${t === a0 ? 'start' : t === a1 ? 'end' : 'middle'}" font-size="10" fill="${t === r.idade ? '#363d4a' : '#6e7789'}" font-weight="${t === r.idade ? 600 : 400}">${t}</text>`).join('')}
   </svg>`;
 }
@@ -197,7 +198,7 @@ function apManchete(r, vista) {
      que a pessoa nunca declarou (antes elas zeravam) */
   const pRendI = r.needAt ? Math.round(r.idealRet / r.needAt * 100) : 0;
   const m = vista === 'ate' ? (SEM_APORTE
-    ? ['COM ESSE APORTE, VOCÊ ACUMULA', fmtR(r.needAt), `${pRendI}% vêm do rendimento, não do seu bolso.`]
+    ? ['VOCÊ PRECISA ACUMULAR', fmtR(r.needAt), `Até os ${r.idade} anos, investindo ${fmtR(r.aporteNec)}/mês.`]
     : [`VOCÊ ACUMULA ATÉ OS ${r.idade}`, fmtR(r.proj), `${pRend}% vêm do rendimento, não do seu bolso.`])
     : vista === 'depois' ? (SEM_APORTE
       ? ['SUA RENDA DURA ATÉ', `${VIDA} anos`, `Com o aporte necessário, a renda cobre todo o plano. Investindo menos, ela acaba antes:`]
@@ -226,9 +227,8 @@ function apLegenda(r, vista) {
   const body = SEM_APORTE
     /* nesta variante a pessoa não declarou nada: os valores são o que ela teria que
        investir, então o rótulo não pode dizer "total investido por você" */
-    ? (vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'O que sai do seu bolso', `${fmtR(r.idealInv)} · ${pInvI}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'O que vem do rendimento', `${fmtR(r.idealRet)} · ${100 - pInvI}%`)
-      : vista === 'depois' ? sens(0.5) + sens(0.75) + row(swL, `Investindo ${fmtR(r.aporteNec)}/mês (100%)`, `até os ${VIDA} anos`, { semi: true, cor: AP_COR.meta })
-        : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'O que sai do seu bolso', fmtR(r.idealInv)) + row(swA(AP_COR.patF, AP_COR.patL), 'O que vem do rendimento', fmtR(r.idealRet)))
+    ? (vista === 'depois' ? sens(0.5) + sens(0.75) + row(swL, `Investindo ${fmtR(r.aporteNec)}/mês (100%)`, `até os ${VIDA} anos`, { semi: true, cor: AP_COR.meta })
+      : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }))
     : vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.invAt)} · ${pInv}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.retorno)} · ${100 - pInv}%`)
       : vista === 'depois' ? row('', 'Renda mensal', `${fmtR(r.rendaPossivel)}/mês`) + row(swL, 'Com o aporte ideal, duraria até', `${VIDA} anos`, { semi: true, cor: AP_COR.meta })
         : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
