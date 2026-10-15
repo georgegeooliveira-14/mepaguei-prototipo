@@ -4007,11 +4007,11 @@ function apCalc(over = {}) {
   const needAt = saque * (1 - Math.pow(1 + IM, -nRet)) / IM;
   const yearNow = hoje().getFullYear();
   /* simula a curva ano a ano para um aporte qualquer: serve para a curva real e para a ideal */
-  const sim = (ap) => {
+  const sim = (ap, sq = saque) => {
     let pat = P0, inv = P0; const s = [];
     for (let age = ia; age <= VIDA; age++) {
       s.push({ age, pat: Math.max(0, pat), inv: Math.max(0, inv) });
-      for (let m = 0; m < 12; m++) { pat *= 1 + IM; if (age < idade) { pat += ap; inv += ap; } else pat -= saque; }
+      for (let m = 0; m < 12; m++) { pat *= 1 + IM; if (age < idade) { pat += ap; inv += ap; } else pat -= sq; }
     }
     return s;
   };
@@ -4023,6 +4023,11 @@ function apCalc(over = {}) {
   /* curva "Meta · necessário" (Figma 20810:2161 "Linha · ideal"): trajetória com o aporte ideal,
      que acumula até o patrimônio necessário na idade-alvo e se esgota no fim do plano */
   const ideal = sim(aporteNec);
+  /* a mesma meta, mas ignorando as outras rendas: a diferença entre as duas é o que
+     essas rendas poupam de patrimônio, e é isso que o gráfico passa a mostrar */
+  const needSem = renda * (1 - Math.pow(1 + IM, -nRet)) / IM;
+  const aporteNecSem = nAcc ? Math.max(0, (needSem - P0 * Math.pow(1 + IM, nAcc)) / fv(nAcc)) : 0;
+  const idealSem = comp > 0 ? sim(aporteNecSem, renda) : ideal;
   const rendaPossivel = comp + proj * IM / (1 - Math.pow(1 + IM, -nRet));
   let idadeOk = null; for (let x = idade; x <= 75; x++) { const r = apCalcLite(x, renda, aporte); if (r) { idadeOk = x; break; } }
   const invAt = serie.find(s => s.age === idade)?.inv ?? 0;
@@ -4031,7 +4036,7 @@ function apCalc(over = {}) {
   const idealInv = P0 + aporteNec * nAcc;
   /* até que idade a renda dura com um aporte qualquer — serve para a sensibilidade */
   const duraCom = (ap) => sim(ap).find(s => s.age > idade && s.pat <= 0)?.age ?? VIDA;
-  return { ia, idade, renda, aporte, comp, P0, saque, needAt, proj, serie, ideal, acaba, aporteNec, rendaPossivel, idadeOk, invAt, retorno: Math.max(0, proj - invAt), idealInv, idealRet: Math.max(0, needAt - idealInv), duraCom, fecha: proj >= needAt * 0.995, ano: yearNow + (idade - ia) };
+  return { ia, idade, renda, aporte, comp, P0, saque, needAt, proj, serie, ideal, acaba, aporteNec, rendaPossivel, idadeOk, invAt, retorno: Math.max(0, proj - invAt), idealInv, idealRet: Math.max(0, needAt - idealInv), duraCom, idealSem, needSem, aporteNecSem, fecha: proj >= needAt * 0.995, ano: yearNow + (idade - ia) };
 }
 function apCalcLite(idade, renda, aporte) {
   const a = apState(); const ia = idadeAtual(); const comp = a.fontes.reduce((s, f) => s + f.valor, 0); const saque = Math.max(0, renda - comp);
@@ -4165,6 +4170,7 @@ function apChart(r, vista) {
     <path d="${area(S0, vInv)}" fill="${AP_COR.invF}"/>
     <path d="${line(S0, vPat)}" fill="none" stroke="${AP_COR.patL}" stroke-width="1.5" stroke-linejoin="round"/>
     <path d="${line(S0, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>`}
+    ${r.comp > 0 ? `<path d="${line(r.idealSem, vPat)}" fill="none" stroke="${AP_COR.meta}" stroke-width="1.5" stroke-dasharray="4 3" opacity=".45" stroke-linejoin="round"/>` : ''}
     <path d="${line(r.ideal, vPat)}" fill="none" stroke="${AP_COR.meta}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     ${pI ? `<circle cx="${gx}" cy="${Y(pI.pat).toFixed(1)}" r="4.5" fill="${AP_COR.meta}" stroke="#fff" stroke-width="2"/>` : ''}
     ${apTemDados(r) && pP ? `<circle cx="${gx}" cy="${Y(pP.pat).toFixed(1)}" r="4.5" fill="${AP_COR.patL}" stroke="#fff" stroke-width="2"/>` : ''}
@@ -4210,14 +4216,17 @@ function apLegenda(r, vista) {
   const pInv = r.proj ? Math.round(r.invAt / r.proj * 100) : 0;
   /* no modelo sem aporte a legenda descreve a composição do plano que funciona */
   const pInvI = r.needAt ? Math.round(r.idealInv / r.needAt * 100) : 0;
+  /* linha que mostra o efeito das outras rendas: sem elas a meta seria maior */
+  const swTrac = `<i style="display:block;width:22px;height:0;border-top:2px dashed ${AP_COR.meta};opacity:.6;flex:none"></i>`;
+  const linhaComp = r.comp > 0 ? row(swTrac, `Sem suas outras rendas (${fmtR(r.comp)}/mês)`, fmtR(r.needSem)) : '';
   const sens = f => row('', `Investindo ${fmtR(r.aporteNec * f)}/mês (${Math.round(f * 100)}%)`, `até os ${r.duraCom(r.aporteNec * f)} anos`);
   const body = !apTemDados(r)
     /* nada declarado: só a meta, mais a sensibilidade na aba de uso (que é condicional) */
     ? (vista === 'depois' ? sens(0.5) + sens(0.75) + row(swL, `Investindo ${fmtR(r.aporteNec)}/mês (100%)`, `até os ${VIDA} anos`, { semi: true, cor: AP_COR.meta })
-      : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }))
+      : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + linhaComp)
     : vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.invAt)} · ${pInv}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.retorno)} · ${100 - pInv}%`)
       : vista === 'depois' ? row('', 'Renda mensal', `${fmtR(r.rendaPossivel)}/mês`) + row(swL, 'Com o aporte ideal, duraria até', `${VIDA} anos`, { semi: true, cor: AP_COR.meta })
-        : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
+        : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + linhaComp + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
   /* 4px acima do detalhamento (Figma 20810:2170) */
   return `<div class="col" style="padding-top:4px">${body}</div>`;
 }
