@@ -181,7 +181,10 @@ function apManchete(r, vista) {
   const pRend = r.proj ? Math.round(r.retorno / r.proj * 100) : 0;
   const m = vista === 'ate' ? [`VOCÊ ACUMULA ATÉ OS ${r.idade}`, fmtR(r.proj), `${pRend}% vêm do rendimento, não do seu bolso.`]
     : vista === 'depois' ? ['SUA RENDA DURA ATÉ', `${r.acaba || VIDA} anos`, r.acaba ? `${VIDA - r.acaba} anos a menos que os ${VIDA} do plano.` : `Sua renda dura todo o plano, até os ${VIDA}.`]
-      : ['VOCÊ ALCANÇA', `${pct}% da meta`, `Investindo ${fmtR(r.aporteNec)}/mês, você fecha o plano.`];
+      /* sem aporte informado o resultado da simulação é o próprio aporte necessário,
+         em vez de quanto da meta a pessoa alcança (modelo do cliente) */
+      : SEM_APORTE ? ['APORTE NECESSÁRIO', `${fmtR(r.aporteNec)}/mês`, `Para alcançar ${fmtR(r.renda)}/mês a partir dos ${r.idade} anos.`]
+        : ['VOCÊ ALCANÇA', `${pct}% da meta`, `Investindo ${fmtR(r.aporteNec)}/mês, você fecha o plano.`];
   return `<div class="col" style="gap:4px;padding-top:16px">
     <p style="font-size:11px;font-weight:600;line-height:15px;letter-spacing:.66px;color:#6e7789">${m[0]}</p>
     <p style="font-size:28px;font-weight:700;line-height:38px;color:#030c23">${m[1]}</p>
@@ -222,7 +225,8 @@ screen('aposRes', {
           ${apChips(r, vista)}${apManchete(r, vista)}
           <div style="padding-top:16px">${apChart(r, vista)}</div>${apLegenda(r, vista)}
           <div style="padding-top:16px"><div style="height:1px;background:#f1f5f9"></div></div>
-          <div style="padding-top:16px"><div class="row jb" style="align-items:center;border:1px solid #e2e5ec;border-radius:12px;padding:16px"><span class="b14 semi" style="color:var(--bh-ink)">Aporte necessário</span><span class="h3" style="color:var(--bh-ink)">${fmtR(r.aporteNec)}/mês</span></div></div>
+          ${SEM_APORTE && vista === 'geral' ? '' /* já é a manchete nessa variante: não repetir o número */
+            : `<div style="padding-top:16px"><div class="row jb" style="align-items:center;border:1px solid #e2e5ec;border-radius:12px;padding:16px"><span class="b14 semi" style="color:var(--bh-ink)">Aporte necessário</span><span class="h3" style="color:var(--bh-ink)">${fmtR(r.aporteNec)}/mês</span></div></div>`}
           <p style="padding-top:16px;font-size:11px;line-height:17px;color:#6e7789">Simulação considerando rentabilidade líquida de 5% ao ano acima da inflação (IPCA)</p></div>
         ${status}
         <div class="bh-card"><button type="button" class="row g3" data-act="tgInfo" aria-expanded="${!!p.info}"><span class="bh-ic">${ic('user', 18)}</span><span class="f1 b16 semi" style="color:var(--bh-ink);text-align:left">Informações consideradas para este cálculo</span>${ic(p.info ? 'chevron-up' : 'chevron-down', 18)}</button>
