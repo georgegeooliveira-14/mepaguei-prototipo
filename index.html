@@ -1211,18 +1211,15 @@ function tokenRender(p) {
   const mail = p.kind === 'email';
   const dest = mail ? (S.user.email || 'm...@gmail.com') : (S.user.cel || '(81) 91234-5678');
   return gradScreen({
-    title: 'Código de Verificação', sub: mail ? 'Preencha o campo abaixo com o código' : 'Preencha o campo abaixo com o código enviado por SMS.', step: p.step || '',
+    /* Figma 02.01.15 / 02.01.05 (5917:9646, 5917:9671, 5917:9696): o aviso sobre o código
+       e o botão "Confirmar depois" saíram; o recado foi para o subtítulo. */
+    title: 'Código de Verificação', sub: mail ? 'Preencha o campo abaixo com o código' : 'Preencha o campo abaixo. Você também pode confirmar depois.', step: p.step || '',
     body: `<div class="col g6" style="align-items:center">
-      <p class="b16 c-darker center">${mail ? `Você receberá um código no seu e-mail <b>${esc(dest)}</b>.` : `Digite o código de 6 dígitos enviado por SMS para <b>${esc(dest)}</b>`}</p>
+      <p class="b16 c-darker center">${mail ? `Você receberá um código no seu e-mail <b>${esc(dest)}</b>.` : `Digite o código de 6 dígitos enviado pelo Whatsapp para <b>${esc(dest)}</b>`}</p>
       <label class="dig w100" for="dig" aria-label="Código de 6 dígitos">${[0, 1, 2, 3, 4, 5].map(k => `<span class="d" data-d="${k}"></span>`).join('')}<input id="dig" data-mask="dig" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label>
       <p class="b16 c-darker">Tempo para expirar: <b class="num" id="tmr">4:59</b></p>
-      <p class="cap c-base center">Digite o código de 6 dígitos que enviamos.</p>
-      <div class="row g2 ais w100" style="background:var(--warning-bg);border-radius:12px;padding:12px">
-        <span class="c-warning" style="flex:0 0 auto;display:flex">${ic('triangle-alert', 18)}</span>
-        <p class="cap c-darker">Se o código não chegar em alguns minutos, siga sem confirmar. Dá para validar depois, em Configurações.</p>
-      </div>
     </div>`,
-    foot: btn('Validar código', { next: true, act: 'ok' }) + btn('Reenviar código', { v: 'o', act: 'resend', id: 'resend', attrs: 'disabled' }) + btn('Confirmar depois', { v: 'o', act: 'ok' }),
+    foot: btn('Validar código', { next: true, act: 'ok' }) + btn('Reenviar código', { v: 'o', act: 'resend', id: 'resend', attrs: 'disabled' }),
   });
 }
 function startTimer(el) {
@@ -1326,9 +1323,9 @@ screen('obj', {
   <div class="col px5" style="flex:1;padding-top:8px;gap:40px">
     <img src="assets/logo-color.png" alt="Me Paguei" width="66" height="40">
     <div class="col g4">
-      <p class="h1 c-darker" style="text-wrap:wrap">O que você quer melhorar na sua vida financeira?</p>
-      <p class="b16 c-dark">Escolha seu maior desafio hoje. A partir dele, vamos encontrar caminhos para alcançar seus objetivos</p></div>
-    <div class="col g6" role="radiogroup">${OBJETIVOS.map(o => radio('user.objetivo', o, o, S.user.objetivo === o)).join('')}</div>
+      <p class="h1 c-darker" style="text-wrap:wrap">O que você quer melhorar na sua vida financeira?</p></div>
+    <!-- múltipla escolha conforme o Figma 6137:10335, que usa checkbox e não traz subtítulo -->
+    <div class="col g6">${OBJETIVOS.map((o, k) => checkbox(`user.objetivos.${k}`, o, !!(S.user.objetivos || {})[k])).join('')}</div>
     <div class="mt-auto" style="padding:16px 0 20px">${btn('Avançar', { go: 'perf1' })}</div>
   </div>${homeInd()}`,
 });
