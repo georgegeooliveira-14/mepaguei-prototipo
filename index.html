@@ -4127,10 +4127,10 @@ screen('apos4', {
 /* ---------- Gráfico patrimônio · vistas (Figma: component set 20810:2270, tela 11.13) ----------
    Geral = plano inteiro · Até os N = fase de acúmulo · Depois dos N = fase de uso. */
 const AP_COR = { meta: '#e77828', invL: '#8fa8fb', invF: 'rgba(143,168,251,.55)', patL: '#348352', patF: 'rgba(102,181,132,.5)' };
-/* Há algo declarado para projetar? Na variante sem aporte a pessoa não informa quanto
-   investe, então só existe trajetória dela se tiver informado patrimônio inicial.
-   Sem isso, o gráfico mostra apenas a meta — nada é afirmado sobre o dinheiro dela. */
-const apTemDados = r => !SEM_APORTE || r.P0 > 0;
+/* Na variante sem aporte a pessoa não informa quanto investe: o resultado da simulação
+   é o próprio plano necessário. O gráfico e a legenda descrevem então essa trajetória —
+   o patrimônio e o total investido que fecham a curva — e não uma projeção declarada. */
+const AP_IDEAL = SEM_APORTE;
 
 function apTicks(r, vista, a0, a1) {
   const t = [];
@@ -4160,14 +4160,17 @@ function apChart(r, vista) {
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="Patrimônio por idade — ${lab}">
     ${[0, 1, 2, 3].map(i => { const y = (YT + i * (YB - YT) / 3).toFixed(1); return `<line x1="${X0}" x2="${X1}" y1="${y}" y2="${y}" stroke="#e2e5ec" stroke-dasharray="2 3"/>`; }).join('')}
     <line x1="${gx}" x2="${gx}" y1="${YT}" y2="${YB}" stroke="#c7cdd9" stroke-dasharray="2 3"/>
-    ${!apTemDados(r) ? '' /* nada declarado: só a meta é desenhada */ : `
+    ${AP_IDEAL ? `
+    <path d="${area(r.ideal, vPat)}" fill="${AP_COR.patF}"/>
+    <path d="${area(r.ideal, vInv)}" fill="${AP_COR.invF}"/>
+    <path d="${line(r.ideal, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>` : `
     <path d="${area(S0, vPat)}" fill="${AP_COR.patF}"/>
     <path d="${area(S0, vInv)}" fill="${AP_COR.invF}"/>
     <path d="${line(S0, vPat)}" fill="none" stroke="${AP_COR.patL}" stroke-width="1.5" stroke-linejoin="round"/>
     <path d="${line(S0, vInv)}" fill="none" stroke="${AP_COR.invL}" stroke-width="1.5" stroke-linejoin="round"/>`}
     <path d="${line(r.ideal, vPat)}" fill="none" stroke="${AP_COR.meta}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     ${pI ? `<circle cx="${gx}" cy="${Y(pI.pat).toFixed(1)}" r="4.5" fill="${AP_COR.meta}" stroke="#fff" stroke-width="2"/>` : ''}
-    ${apTemDados(r) && pP ? `<circle cx="${gx}" cy="${Y(pP.pat).toFixed(1)}" r="4.5" fill="${AP_COR.patL}" stroke="#fff" stroke-width="2"/>` : ''}
+    ${!AP_IDEAL && pP ? `<circle cx="${gx}" cy="${Y(pP.pat).toFixed(1)}" r="4.5" fill="${AP_COR.patL}" stroke="#fff" stroke-width="2"/>` : ''}
     ${apTicks(r, vista, a0, a1).map(t => `<text x="${X(t).toFixed(1)}" y="${YB + 19}" text-anchor="${t === a0 ? 'start' : t === a1 ? 'end' : 'middle'}" font-size="10" fill="${t === r.idade ? '#363d4a' : '#6e7789'}" font-weight="${t === r.idade ? 600 : 400}">${t}</text>`).join('')}
   </svg>`;
 }
@@ -4184,10 +4187,10 @@ function apManchete(r, vista) {
   /* sem aporte informado as abas falam do plano que funciona, não de uma projeção
      que a pessoa nunca declarou (antes elas zeravam) */
   const pRendI = r.needAt ? Math.round(r.idealRet / r.needAt * 100) : 0;
-  const m = vista === 'ate' ? (!apTemDados(r)
-    ? ['VOCÊ PRECISA ACUMULAR', fmtR(r.needAt), `Até os ${r.idade} anos, investindo ${fmtR(r.aporteNec)}/mês.`]
+  const m = vista === 'ate' ? (AP_IDEAL
+    ? ['COM ESSE APORTE, VOCÊ ACUMULA', fmtR(r.needAt), `${pRendI}% vêm do rendimento, não do seu bolso.`]
     : [`VOCÊ ACUMULA ATÉ OS ${r.idade}`, fmtR(r.proj), `${pRend}% vêm do rendimento, não do seu bolso.`])
-    : vista === 'depois' ? (!apTemDados(r)
+    : vista === 'depois' ? (AP_IDEAL
       ? ['SUA RENDA DURA ATÉ', `${VIDA} anos`, `Com o aporte necessário, a renda cobre todo o plano. Investindo menos, ela acaba antes:`]
       : ['SUA RENDA DURA ATÉ', `${r.acaba || VIDA} anos`, r.acaba ? `${VIDA - r.acaba} anos a menos que os ${VIDA} do plano.` : `Sua renda dura todo o plano, até os ${VIDA}.`])
       /* sem aporte informado o resultado da simulação é o próprio aporte necessário,
@@ -4211,10 +4214,11 @@ function apLegenda(r, vista) {
   /* no modelo sem aporte a legenda descreve a composição do plano que funciona */
   const pInvI = r.needAt ? Math.round(r.idealInv / r.needAt * 100) : 0;
   const sens = f => row('', `Investindo ${fmtR(r.aporteNec * f)}/mês (${Math.round(f * 100)}%)`, `até os ${r.duraCom(r.aporteNec * f)} anos`);
-  const body = !apTemDados(r)
-    /* nada declarado: só a meta, mais a sensibilidade na aba de uso (que é condicional) */
+  const body = AP_IDEAL
+    /* o plano necessário: quanto sai do bolso e quanto o patrimônio chega a ser */
     ? (vista === 'depois' ? sens(0.5) + sens(0.75) + row(swL, `Investindo ${fmtR(r.aporteNec)}/mês (100%)`, `até os ${VIDA} anos`, { semi: true, cor: AP_COR.meta })
-      : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }))
+      : vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.idealInv)} · ${pInvI}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.idealRet)} · ${100 - pInvI}%`)
+        : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.idealInv)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.needAt)))
     : vista === 'ate' ? row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', `${fmtR(r.invAt)} · ${pInv}%`) + row(swA(AP_COR.patF, AP_COR.patL), 'Retorno dos investimentos', `${fmtR(r.retorno)} · ${100 - pInv}%`)
       : vista === 'depois' ? row('', 'Renda mensal', `${fmtR(r.rendaPossivel)}/mês`) + row(swL, 'Com o aporte ideal, duraria até', `${VIDA} anos`, { semi: true, cor: AP_COR.meta })
         : row(swL, 'Meta · necessário', fmtR(r.needAt), { semi: true, cor: AP_COR.meta }) + row(swA(AP_COR.invF, AP_COR.invL), 'Total investido por você', fmtR(r.invAt)) + row(swA(AP_COR.patF, AP_COR.patL), 'Patrimônio projetado', fmtR(r.proj));
