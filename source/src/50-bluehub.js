@@ -40,7 +40,7 @@ screen('bhWelcome', {
       <div class="col g4">
         <p class="h1" style="color:#f5f5f5;text-wrap:wrap">Tudo para cuidar da sua vida e de quem você ama, agora ao seu alcance.</p>
         <p class="b16" style="color:#f5f5f5">Sua Jornada Blue começa aqui.</p></div>
-      <div class="col g4">${bhBtn('Começar', { lg: true, go: 'bhCad' })}${bhBtn('Entrar', { v: 'oc', lg: true, go: 'bhLogin' })}</div></div>
+      <div class="col g4">${bhBtn('Criar conta', { lg: true, go: 'bhCad' })}${bhBtn('Entrar', { v: 'oc', lg: true, go: 'bhLogin' })}</div></div>
     <div class="hi bhw-hi"></div>`,
 });
 

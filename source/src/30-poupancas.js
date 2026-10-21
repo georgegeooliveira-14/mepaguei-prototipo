@@ -445,12 +445,40 @@ screen('pbCfg', { cls: 'grad', render: () => { const o = poupState().placar; ret
 /* ---------- Troco inteligente ---------- */
 screen('trIntro', {
   render: () => introScreen({ title: 'Ative o Troco inteligente', text: 'Economize sem esforço. Nós juntamos os centavos das compras dos seus cartões conectados e guardamos no seu cofrinho de forma automática.', bullets: [['coins', 'Escolha entre arredondar os centavos ou guardar um valor fixo por compra.'], ['rocket', 'Ative o multiplicador opcional para acelerar seus objetivos.']], act: 'go' }),
-  acts: { go: () => confirmContasSheet('o Troco Inteligente', 'trStart'), trStart: () => { closeOverlays(true); S.tmpTr = { modo: '', fixoTxt: '', mult: null }; go('trModo'); } },
+  acts: { go: () => confirmContasSheet('o Troco Inteligente', 'trStart'), trStart: () => { closeOverlays(true); S.tmpTr = { modo: '', fixoTxt: '', mult: null, cards: {} }; S.contas.forEach(id => S.tmpTr.cards[id] = true); go('trCards'); } },
+});
+/* 08.0x · Rastrear compras — escolha de quais cartões usar (Figma 8034:17720).
+   Primeira etapa do fluxo: lista os cartões das contas conectadas via Open Finance,
+   todos marcados por padrão. Reaproveita BANKS/bankIc e o checkbox do DS. */
+screen('trCards', {
+  cls: 'grad',
+  render: () => {
+    const sel = S.tmpTr.cards || {};
+    const card = id => `<div class="card row jb" style="align-items:center;padding:12px 16px;gap:12px">
+        <span class="row g3" style="align-items:center;min-width:0">${bankIc(id)}
+          <span class="col" style="gap:0;min-width:0"><span class="b16 semi c-darker">Crédito</span><span class="b14 c-base" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">•••• 1234 | ${BANKS[id].nome}</span></span></span>
+        <button type="button" class="chk ${sel[id] ? 'on' : ''}" data-act="check" data-key="tmpTr.cards.${id}" role="checkbox" aria-checked="${!!sel[id]}" style="width:auto;flex:none"><span class="box" style="margin-top:0">${ic('check', 12)}</span></button>
+      </div>`;
+    return ofScreen({ title: 'Rastrear compras', sub: 'Monitore as compras feitas nos cartões de crédito conectados via Open Finance.', dots: 1,
+      body: `<p class="b14 c-dark">Total de cartões disponíveis: <b class="c-darker">${S.contas.length}</b></p>
+        <div class="col g3">${S.contas.map(card).join('')}</div>
+        ${btn(ic('plus', 14) + ' Adicionar novo cartão', { v: 'o', cls: 'btn-xs auto', act: 'addCard', attrs: 'style="align-self:flex-end;padding:0 14px"' })}
+        <div class="col g2 center" style="align-items:center;padding-top:16px;margin-top:auto">
+          <span class="ico-c sm">${ic('info', 16)}</span>
+          <p class="b14 semi c-darker">Como funciona?</p>
+          <p class="b14 c-base center">A conexão servirá apenas para calcularmos o troco das suas compras. Nenhum valor será debitado dos cartões, o débito total será feito direto da sua conta principal.</p>
+        </div>`,
+      foot: btn('Próximo', { next: true, act: 'next' }) }); },
+  valid: () => Object.values(S.tmpTr.cards || {}).some(Boolean),
+  acts: {
+    addCard: () => toast('Nesta versão de teste, novos cartões são adicionados pela conexão Open Finance', 'info', 'info'),
+    next: () => go('trModo'),
+  },
 });
 screen('trModo', {
   cls: 'grad',
   render: (p) => { const m = S.tmpTr.modo;
-    return ofScreen({ title: 'Troco inteligente', sub: 'Escolha a regra que usaremos para calcular o valor poupado em cada compra.', dots: p.edit ? 0 : 1,
+    return ofScreen({ title: 'Troco inteligente', sub: 'Escolha a regra que usaremos para calcular o valor poupado em cada compra.', dots: p.edit ? 0 : 2,
       body: `<div class="radc ${m === 'arred' ? 'on' : ''}" data-act="msel" data-m="arred" role="radio" aria-checked="${m === 'arred'}" style="cursor:pointer"><span class="rad ${m === 'arred' ? 'on' : ''}"><span class="o"></span><span class="lb">Arredondar centavos</span></span><span class="d">Arredonda o valor para o próximo número inteiro e guarda a diferença.<br><b class="c-dark">Exemplo:</b> "Uma compra de R$ 4,50 vira R$ 5,00. Você poupa R$ 0,50."</span></div>
       <div class="radc ${m === 'fixo' ? 'on' : ''}" data-act="msel" data-m="fixo" role="radio" aria-checked="${m === 'fixo'}" style="cursor:pointer"><span class="rad ${m === 'fixo' ? 'on' : ''}"><span class="o"></span><span class="lb">Guardar valor fixo</span></span><span class="d">Escolha um valor exato para guardar em cada compra feita.</span>
         ${m === 'fixo' ? `<div class="col g2" style="padding-left:30px;margin-top:6px">${field({ id: 'trf', ph: 'R$ 0,00', bind: 'tmpTr.fixoTxt', mask: 'brl' })}<div class="row g2">${[1, 2, 5].map(v => `<button type="button" class="chip f1 jc" data-act="fq" data-v="${v}" style="height:30px;font-size:12px;${parseBRL(S.tmpTr.fixoTxt) === v ? 'border-color:var(--primary-darker);color:var(--primary-darker)' : 'color:var(--primary);border-color:#a9d3f5'}">${fmtBRL(v)}</button>`).join('')}</div></div>` : ''}</div>`,
@@ -467,7 +495,7 @@ function trSave() { const t = S.tmpTr; poupState().troco = { modo: t.modo, fixo:
 screen('trMult', {
   cls: 'grad',
   render: (p) => { const m = S.tmpTr.mult;
-    return ofScreen({ title: 'Multiplicar centavos', sub: 'Ative para multiplicar o valor arredondado e juntar dinheiro mais rápido.', dots: p.edit ? 0 : 2,
+    return ofScreen({ title: 'Multiplicar centavos', sub: 'Ative para multiplicar o valor arredondado e juntar dinheiro mais rápido.', dots: p.edit ? 0 : 3,
       body: `${[[2, 'R$ 1,00'], [5, 'R$ 2,50'], [10, 'R$ 5,00']].map(([k, v]) => radio('tmpTr.mult', k, `Multiplique por ${k}x`, m === k || m === String(k), `Ex: Se o seu troco for de R$ 0,50, nós guardamos ${v} nessa compra.`)).join('')}
       ${radio('tmpTr.mult', '0', 'Sem multiplicador', m === '0' || m === 0, '').replace('<span class="d"></span>', '')}
       <div class="col g2 center" style="align-items:center;padding-top:4px"><span class="ico-c sm">${ic('info', 16)}</span><p class="b14 semi c-darker">Importante saber</p><p class="b14 c-base">O multiplicador é aplicado sobre qualquer troco gerado entre R$ 0,01 e R$ 0,99. Valores já inteiros (ex: R$ 15,00) não geram depósitos.</p></div>`,
