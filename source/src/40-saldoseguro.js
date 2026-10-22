@@ -81,9 +81,9 @@ function ssStep({ step, title, sub, body, foot }) {
     <span class="row g1">${dots}</span></div>
   <div class="scroll" style="position:relative;z-index:2;display:flex;flex-direction:column">
     <div style="flex:none;padding:18px 20px 4px;color:#fff"><p class="h2">${title}</p><p class="b16" style="color:#e9f1fb;margin-top:4px">${sub}</p></div>
-    <div style="flex:1 0 auto;background:#fff;margin-top:16px;border-radius:32px 32px 0 0;padding:28px 20px 24px;display:flex;flex-direction:column;gap:24px">${body}</div>
+    <div style="flex:1 0 auto;background:#fff;margin-top:16px;border-radius:32px 32px 0 0;padding:28px 20px 24px;display:flex;flex-direction:column;gap:24px">${body}${foot ? `<div class="col g3">${foot}</div>` : ''}</div>
   </div>
-  ${foot ? `<div class="sheet-foot" style="background:#fff">${foot}</div>` : ''}${homeInd()}`;
+  ${homeInd()}`;
 }
 const ssFoot = (label, total, cap, act = 'next', dis = false) => `<div class="col g1" style="padding-bottom:4px"><p class="b14 semi c-primary">${label}</p><p class="h2 c-darker num">${fmtBRL(total)}</p><p class="cap c-base">${cap}</p></div>${btn('Avançar', { act, next: true })}${btn('Cancelar', { v: 'o', act: 'ssCancel' })}`;
 GLOBAL_ACTS.ssCancel = () => confirmDlg({ icon: 'circle-alert', tone: 'warning', title: 'Sair da projeção?', text: 'Se você sair agora, as informações preenchidas neste estudo serão perdidas.', ok: 'Sair', okAct: 'ssCancelOk', cancel: 'Continuar preenchendo' });
