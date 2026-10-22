@@ -2772,7 +2772,7 @@ function ssStep({ step, title, sub, body, foot }) {
     <span class="row g1">${dots}</span></div>
   <div class="scroll" style="position:relative;z-index:2;display:flex;flex-direction:column">
     <div style="flex:none;padding:18px 20px 4px;color:#fff"><p class="h2">${title}</p><p class="b16" style="color:#e9f1fb;margin-top:4px">${sub}</p></div>
-    <div style="flex:1 0 auto;background:#fff;margin-top:16px;border-radius:32px 32px 0 0;padding:28px 20px 24px;display:flex;flex-direction:column;gap:24px">${body}${foot ? `<div class="col g3">${foot}</div>` : ''}</div>
+    <div style="flex:1 0 auto;background:#fff;margin-top:16px;border-radius:32px 32px 0 0;padding:28px 20px 24px;display:flex;flex-direction:column;gap:24px">${body}${foot ? `<div class="divider"></div><div class="col g3">${foot}</div>` : ''}</div>
   </div>
   ${homeInd()}`;
 }
