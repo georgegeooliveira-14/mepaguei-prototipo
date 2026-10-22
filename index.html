@@ -4244,9 +4244,9 @@ screen('aposRes', {
         ${status}
         <div class="bh-card"><button type="button" class="row g3" data-act="tgInfo" aria-expanded="${!!p.info}"><span class="bh-ic">${ic('user', 18)}</span><span class="f1 b16 semi" style="color:var(--bh-ink);text-align:left">Informações consideradas para este cálculo</span>${ic(p.info ? 'chevron-up' : 'chevron-down', 18)}</button>
           ${p.info ? `<div class="col g3" style="background:var(--bg-lighter);border-radius:8px;padding:16px">${[['Idade de aposentadoria', r.idade + ' anos'], ['Renda desejada', fmtR(r.renda) + '/mês'], ['Outras fontes de renda', fmtR(r.comp) + '/mês'], ['Investimento atual', fmtR(r.P0)]].map(([a, v]) => `<div class="row jb"><span class="b14" style="color:#737373">${a}</span><span class="b14 semi" style="color:#404040">${v}</span></div>`).join('')}</div>` : ''}</div>
-        <p class="cap center" style="color:#6e7789">As simulações são estimativas e não representam garantia de rentabilidade.</p>`,
-      foot: temCaminho ? btn('Ir para SuperPrevidência', { cls: 'lg', act: 'superp', attrs: 'style="background:var(--bh-blue)"' }) + btn('Editar e simular novamente', { v: 'o', act: 'edit', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })
-        : btn('Ajustar e simular novamente', { cls: 'lg', act: 'edit', attrs: 'style="background:var(--bh-blue)"' }) + btn('Salvar assim mesmo', { v: 'o', act: 'save', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' }) }); },
+        <div class="col g3">${temCaminho ? btn('Ir para SuperPrevidência', { cls: 'lg', act: 'superp', attrs: 'style="background:var(--bh-blue)"' }) + btn('Editar e simular novamente', { v: 'o', act: 'edit', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })
+          : btn('Ajustar e simular novamente', { cls: 'lg', act: 'edit', attrs: 'style="background:var(--bh-blue)"' }) + btn('Salvar assim mesmo', { v: 'o', act: 'save', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>
+        <p class="cap center" style="color:#6e7789">As simulações são estimativas e não representam garantia de rentabilidade.</p>` }); },
   acts: {
     tgInfo: () => { const p = stack[stack.length - 1].p; p.info = !p.info; rerender(); },
     edit: () => backTo('apos2'),
