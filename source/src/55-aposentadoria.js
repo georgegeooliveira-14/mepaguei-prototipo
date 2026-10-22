@@ -1,11 +1,12 @@
 /* ============ 11 · Aposentadoria inteligente (dentro do BlueHub) ============ */
 
 const RENT = 0.05, IM = Math.pow(1 + RENT, 1 / 12) - 1, VIDA = 90;
-/* Variante do teste: ?sem-aporte esconde o campo de aporte mensal. É o modelo descrito
-   pelo cliente — a pessoa não informa quanto investe, e o resultado da simulação é
-   justamente o aporte necessário. Mesma build serve as duas versões. */
-const SEM_APORTE = /[?&]sem-aporte(\b|=)/.test(location.search);
-const fmtM = v => { const a = Math.abs(v); const s = a >= 1e6 ? 'R$ ' + (a / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' M' : 'R$ ' + Math.round(a).toLocaleString('pt-BR'); return (v < 0 ? '−' : '') + s; };
+/* Modelo definido pelo cliente (22/10/2026): a pessoa não informa quanto investe por mês —
+   o sistema propõe o aporte necessário a partir dos inputs anteriores (idade atual, idade
+   alvo, renda desejada, outras fontes, patrimônio inicial), e a curva mostrada é sempre a
+   do plano que fecha (nunca um cenário que se esgota). Era uma variante opcional via
+   ?sem-aporte; agora é o único comportamento. */
+const SEM_APORTE = true;
 /* idade derivada da data de nascimento do cadastro, quando houver */
 function idadeDaData() { const d = parseData(S.user.nasc); if (!d) return null; const t = hoje(); let a = t.getFullYear() - d.getFullYear(); if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--; return a; }
 /* a idade informada na tela manda; a data de nascimento é só o valor inicial do campo */
@@ -206,19 +207,11 @@ function apDetalhe(r) {
 }
 screen('aposRes', {
   cls: 'bh',
-  render: (p) => { const r = apCalc(); const gap = r.needAt - r.proj;
-    const alt = (t, act) => `<button type="button" class="row g3 ais" data-act="${act}" style="text-align:left;padding:8px 0"><span style="color:${r.fecha ? 'var(--success)' : 'var(--warning)'}">${ic('circle-arrow-right', 20)}</span><span class="b14 semi" style="color:var(--bh-ink)">${t}</span></button>`;
-    /* sem aporte informado sempre há um caminho — ele é o próprio resultado da simulação.
-       O card de ajuste não cabe aqui: falaria de "manter aportes de R$ 0,00/mês". */
-    const temCaminho = r.fecha || SEM_APORTE;
-    const status = temCaminho ? `<div class="card col g2" style="background:var(--success-bg);border-color:#bfe5cc"><p class="h4" style="color:var(--bh-ink)">Encontramos um caminho!</p><p class="b14" style="color:var(--bh-ink)">Ao investir <b>${fmtR(SEM_APORTE ? r.aporteNec : r.aporte)}</b> por mês você alcança a renda desejada a partir da idade alvo.${!SEM_APORTE && r.aporteNec < r.aporte * 0.98 ? ` Na verdade, ${fmtR(r.aporteNec)} por mês já seriam suficientes.` : ''}</p><p class="b14" style="color:var(--bh-ink)">Agora você pode conhecer a SuperPrevidência, uma curadoria de soluções para colocar seu plano em prática:</p>${btn('Ir para SuperPrevidência', { act: 'superp', attrs: 'style="background:var(--success)"' })}</div>`
-      : `<div class="card col g2" style="border-color:${r.acaba && r.acaba >= r.idade + 8 ? '#f6c59f' : '#f2b4b4'}"><div class="row jb"><p class="h4" style="color:var(--bh-ink)">Ajuste necessário</p>${r.acaba && r.acaba >= r.idade + 8 ? '<span class="badge warning">Atenção</span>' : ''}</div>
-          <p class="b14" style="color:var(--bh-muted)">${r.acaba && r.acaba >= r.idade + 8 ? `Com as premissas atuais, há recursos para a aposentadoria, mas a reserva financeira se esgota aos <b>${r.acaba} anos</b>.` : `Mantendo aportes de <b>${fmtBRL(r.aporte)}/mês</b>, há uma diferença de <b>${fmtM(gap)}</b> para atingir o valor ideal aos <b>${r.idade} anos</b>.`}</p>
-          <p class="b16 bold" style="color:var(--bh-ink);margin-top:6px">Veja como resolver</p><p class="b14" style="color:var(--bh-muted)">Toque em uma alternativa para simular com ela na hora.</p>
-          ${alt(`Aumentar o aporte mensal para ${fmtBRL(Math.ceil(r.aporteNec / 10) * 10)}/mês`, 'altA')}
-          ${alt(`Ajustar a renda desejada para ${fmtBRL(Math.floor(r.rendaPossivel / 100) * 100)}/mês`, 'altR')}
-          ${r.idadeOk ? alt(`Aposentar aos ${r.idadeOk} anos`, 'altI') : ''}
-          ${alt('Combinar alternativas (aplique mudanças no aporte, renda desejada ou idade de aposentadoria, ao mesmo tempo)', 'edit')}</div>`;
+  render: (p) => { const r = apCalc();
+    /* sem aporte informado, sempre há um caminho — é o próprio resultado da simulação:
+       o sistema propõe o aporte necessário (r.aporteNec) a partir do que foi informado
+       nas telas anteriores, e a curva do gráfico é sempre a do plano que fecha. */
+    const status = `<div class="card col g2" style="background:var(--success-bg);border-color:#bfe5cc"><p class="h4" style="color:var(--bh-ink)">Encontramos um caminho!</p><p class="b14" style="color:var(--bh-ink)">Ao investir <b>${fmtR(r.aporteNec)}</b> por mês você alcança a renda desejada a partir da idade alvo.</p><p class="b14" style="color:var(--bh-ink)">Agora você pode conhecer a SuperPrevidência, uma curadoria de soluções para colocar seu plano em prática:</p>${btn('Ir para SuperPrevidência', { act: 'superp', attrs: 'style="background:var(--success)"' })}</div>`;
     return apScreen({ title: 'Aposentadoria Inteligente', sub: 'Veja como seu patrimônio pode evoluir ao longo da vida e durante a aposentadoria', subRola: true,
       /* paddings conforme o card 20810:181252: 24/12/20 com raio 20, sem gap entre blocos
          (cada bloco traz o próprio respiro); o título fica 8px mais para dentro que o gráfico */
@@ -232,17 +225,12 @@ screen('aposRes', {
         ${status}
         <div class="bh-card"><button type="button" class="row g3" data-act="tgInfo" aria-expanded="${!!p.info}"><span class="bh-ic">${ic('user', 18)}</span><span class="f1 b16 semi" style="color:var(--bh-ink);text-align:left">Informações consideradas para este cálculo</span>${ic(p.info ? 'chevron-up' : 'chevron-down', 18)}</button>
           ${p.info ? `<div class="col g3" style="background:var(--bg-lighter);border-radius:8px;padding:16px">${[['Idade de aposentadoria', r.idade + ' anos'], ['Renda desejada', fmtR(r.renda) + '/mês'], ['Outras fontes de renda', fmtR(r.comp) + '/mês'], ['Investimento atual', fmtR(r.P0)]].map(([a, v]) => `<div class="row jb"><span class="b14" style="color:#737373">${a}</span><span class="b14 semi" style="color:#404040">${v}</span></div>`).join('')}</div>` : ''}</div>
-        <div class="col g3">${temCaminho ? btn('Ir para SuperPrevidência', { cls: 'lg', act: 'superp', attrs: 'style="background:var(--bh-blue)"' }) + btn('Editar e simular novamente', { v: 'o', act: 'edit', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })
-          : btn('Ajustar e simular novamente', { cls: 'lg', act: 'edit', attrs: 'style="background:var(--bh-blue)"' }) + btn('Salvar assim mesmo', { v: 'o', act: 'save', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>
+        <div class="col g3">${btn('Ir para SuperPrevidência', { cls: 'lg', act: 'superp', attrs: 'style="background:var(--bh-blue)"' })}${btn('Editar e simular novamente', { v: 'o', act: 'edit', attrs: 'style="color:var(--bh-blue);box-shadow:inset 0 0 0 1px var(--bh-blue)"' })}</div>
         <p class="cap center" style="color:#6e7789">As simulações são estimativas e não representam garantia de rentabilidade.</p>` }); },
   acts: {
     tgInfo: () => { const p = stack[stack.length - 1].p; p.info = !p.info; rerender(); },
     edit: () => backTo('apos2'),
-    altA: () => { const r = apCalc(); apState().aporteTxt = fmtBRL(Math.ceil(r.aporteNec / 10) * 10); rerender(); toast('Simulamos com o novo aporte'); },
-    altR: () => { const r = apCalc(); apState().rendaTxt = fmtBRL(Math.floor(r.rendaPossivel / 100) * 100); rerender(); toast('Simulamos com a nova renda'); },
-    altI: () => { const r = apCalc(); apState().idadeTxt = String(r.idadeOk); rerender(); toast(`Simulamos a aposentadoria aos ${r.idadeOk} anos`); },
     superp: () => toast('A SuperPrevidência abre fora do protótipo', 'success', 'external-link'),
-    save: () => { reset('bhHome', {}, 'back'); toast('Simulação salva'); },
   },
 });
 flowEntry('BlueHub', 'Aposentadoria inteligente', () => { if (!S.user.nome) S.user.nome = 'Marcelo Pimentel'; S.apos = null; reset('bhHome'); go('apos1'); });
