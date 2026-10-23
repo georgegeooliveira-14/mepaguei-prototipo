@@ -4031,7 +4031,11 @@ function apCalc(over = {}) {
   const a = apState(); const ia = idadeAtual();
   const idade = over.idade ?? +a.idadeTxt; const renda = over.renda ?? parseBRL(a.rendaTxt); const aporte = over.aporte ?? parseBRL(a.aporteTxt);
   const comp = a.fontes.reduce((s, f) => s + f.valor, 0); const P0 = parseBRL(a.patTxt);
-  const saque = Math.max(0, renda - comp);
+  /* Regra base: outras fontes (ex.: aluguel) abatem a renda que o patrimônio precisa cobrir.
+     Fallback: se as fontes já cobrem toda a renda desejada (saque daria 0), a meta passa a
+     mirar a renda desejada cheia — assim o gráfico fecha no alto com um aporte proposto,
+     em vez de zerar. Decisão do cliente em 23/10/2026. */
+  const saque = Math.max(0, renda - comp) || renda;
   const nAcc = Math.max(0, (idade - ia) * 12), nRet = Math.max(1, (VIDA - idade) * 12);
   const needAt = saque * (1 - Math.pow(1 + IM, -nRet)) / IM;
   const yearNow = hoje().getFullYear();
@@ -4063,7 +4067,7 @@ function apCalc(over = {}) {
   return { ia, idade, renda, aporte, comp, P0, saque, needAt, proj, serie, ideal, acaba, aporteNec, rendaPossivel, idadeOk, invAt, retorno: Math.max(0, proj - invAt), idealInv, idealRet: Math.max(0, needAt - idealInv), duraCom, fecha: proj >= needAt * 0.995, ano: yearNow + (idade - ia) };
 }
 function apCalcLite(idade, renda, aporte) {
-  const a = apState(); const ia = idadeAtual(); const comp = a.fontes.reduce((s, f) => s + f.valor, 0); const saque = Math.max(0, renda - comp);
+  const a = apState(); const ia = idadeAtual(); const comp = a.fontes.reduce((s, f) => s + f.valor, 0); const saque = Math.max(0, renda - comp) || renda;
   const nAcc = (idade - ia) * 12, nRet = (VIDA - idade) * 12; const need = saque * (1 - Math.pow(1 + IM, -nRet)) / IM;
   const P0 = parseBRL(a.patTxt); const proj = P0 * Math.pow(1 + IM, nAcc) + aporte * (Math.pow(1 + IM, nAcc) - 1) / IM;
   return proj >= need;
